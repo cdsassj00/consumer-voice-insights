@@ -144,15 +144,32 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
             <CardDescription>전체 게시글의 감성 분포</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={sentimentData}
                   cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name} ${value}%`}
-                  outerRadius={80}
+                  cy="45%"
+                  labelLine={true}
+                  label={({ name, value, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                    const RADIAN = Math.PI / 180;
+                    const radius = outerRadius + 25;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                    return (
+                      <text 
+                        x={x} 
+                        y={y} 
+                        fill="hsl(var(--foreground))" 
+                        textAnchor={x > cx ? 'start' : 'end'} 
+                        dominantBaseline="central"
+                        className="text-sm font-medium"
+                      >
+                        {`${name} ${value}%`}
+                      </text>
+                    );
+                  }}
+                  outerRadius={65}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -173,12 +190,19 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
             <CardDescription>가장 많이 언급된 주제</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={analysis.mainTopics}>
-                <XAxis dataKey="topic" />
-                <YAxis />
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={analysis.mainTopics} margin={{ bottom: 60 }}>
+                <XAxis 
+                  dataKey="topic" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                />
+                <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="hsl(var(--primary))" />
+                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -243,32 +267,79 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
             <CardDescription>키워드 간 연관관계 분석</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" dataKey="x" domain={[0, 100]} hide />
-                <YAxis type="number" dataKey="y" domain={[0, 100]} hide />
-                <ZAxis type="number" dataKey="z" range={[100, 1000]} />
-                <Tooltip 
-                  cursor={{ strokeDasharray: '3 3' }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-card border rounded-lg p-3 shadow-lg">
-                          <p className="font-semibold">{payload[0].payload.name}</p>
-                          <p className="text-sm text-muted-foreground">{payload[0].payload.category}</p>
-                          <p className="text-xs mt-1">중요도: {(payload[0].payload.z / 10).toFixed(1)}</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Scatter data={networkData} fill="hsl(var(--primary))" fillOpacity={0.6} />
-              </ScatterChart>
-            </ResponsiveContainer>
+            <div className="relative">
+              <svg width="100%" height="500" viewBox="0 0 800 500" className="overflow-visible">
+                {/* 연결선 그리기 */}
+                {analysis.networkGraph.links.map((link, idx) => {
+                  const sourceNode = networkData.find(n => n.name === link.source);
+                  const targetNode = networkData.find(n => n.name === link.target);
+                  if (!sourceNode || !targetNode) return null;
+                  
+                  const x1 = (sourceNode.x / 100) * 800;
+                  const y1 = (sourceNode.y / 100) * 500;
+                  const x2 = (targetNode.x / 100) * 800;
+                  const y2 = (targetNode.y / 100) * 500;
+                  
+                  return (
+                    <line
+                      key={`link-${idx}`}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeWidth={link.value}
+                      strokeOpacity={0.3}
+                    />
+                  );
+                })}
+                
+                {/* 노드와 라벨 그리기 */}
+                {networkData.map((node, idx) => {
+                  const cx = (node.x / 100) * 800;
+                  const cy = (node.y / 100) * 500;
+                  const r = Math.sqrt(node.z / Math.PI) * 2;
+                  
+                  return (
+                    <g key={`node-${idx}`}>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={r}
+                        fill="hsl(var(--primary))"
+                        fillOpacity={0.6}
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        className="hover:fill-opacity-80 transition-all cursor-pointer"
+                      />
+                      <text
+                        x={cx}
+                        y={cy + r + 14}
+                        textAnchor="middle"
+                        fill="hsl(var(--foreground))"
+                        fontSize="11"
+                        fontWeight="500"
+                        className="pointer-events-none"
+                      >
+                        {node.name}
+                      </text>
+                      <text
+                        x={cx}
+                        y={cy + r + 26}
+                        textAnchor="middle"
+                        fill="hsl(var(--muted-foreground))"
+                        fontSize="9"
+                        className="pointer-events-none"
+                      >
+                        {node.category}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              * 버블 크기는 키워드의 중요도를 나타냅니다
+              * 노드 크기는 키워드의 중요도, 선 굵기는 연관 강도를 나타냅니다
             </p>
           </CardContent>
         </Card>
