@@ -185,28 +185,49 @@ const Index = () => {
     
     setIsAnalyzingFirstStage(true);
     try {
+      // 원본 게재일자 기준으로 날짜별 게시글 수 집계
       const dateCounts = results.reduce((acc, result) => {
-        // article_published_at이 있는 경우에만 트렌드에 포함 (수집일 created_at은 사용하지 않음)
+        // article_published_at이 있는 경우에만 트렌드에 포함
         if (!result.article_published_at) {
           return acc;
         }
 
-        const date = new Date(result.article_published_at).toLocaleDateString('ko-KR', {
-          month: 'short',
-          day: 'numeric',
-        });
-        acc[date] = (acc[date] || 0) + 1;
+        const date = new Date(result.article_published_at);
+        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+        acc[dateKey] = (acc[dateKey] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const trendData = Object.entries(dateCounts)
-        .map(([date, count]) => ({ date, count }))
-        .sort((a, b) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          return dateA.getTime() - dateB.getTime();
-        })
-        .slice(-30); // 최근 30일만 표시
+      // 최소/최대 날짜 찾기
+      const dates = Object.keys(dateCounts).sort();
+      if (dates.length === 0) {
+        setFirstStageAnalysis(null);
+        return;
+      }
+
+      const minDate = new Date(dates[0]);
+      const maxDate = new Date(dates[dates.length - 1]);
+      
+      // 날짜 범위의 모든 날짜를 생성 (빈 날짜도 0으로 포함)
+      const allDates: { date: string; count: number }[] = [];
+      const currentDate = new Date(minDate);
+      
+      while (currentDate <= maxDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const displayDate = currentDate.toLocaleDateString('ko-KR', {
+          month: 'short',
+          day: 'numeric'
+        });
+        
+        allDates.push({
+          date: displayDate,
+          count: dateCounts[dateKey] || 0
+        });
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const trendData = allDates.slice(-30); // 최근 30일만 표시
 
       const { data, error } = await supabase.functions.invoke('analyze-first-stage', {
         body: { 
