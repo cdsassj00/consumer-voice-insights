@@ -33,6 +33,7 @@ interface SearchResult {
   snippet: string;
   source_domain: string;
   status: 'pending' | 'crawling' | 'analyzed' | 'failed';
+  created_at: string;
 }
 
 interface Keyword {
@@ -183,6 +184,25 @@ const Index = () => {
     
     setIsAnalyzingFirstStage(true);
     try {
+      // 날짜별 게시글 수 집계
+      const dateCounts = results.reduce((acc, result) => {
+        const date = new Date(result.created_at).toLocaleDateString('ko-KR', { 
+          month: 'short', 
+          day: 'numeric' 
+        });
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const trendData = Object.entries(dateCounts)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        })
+        .slice(-14); // 최근 14일만 표시
+
       const { data, error } = await supabase.functions.invoke('analyze-first-stage', {
         body: { 
           results: results.map(r => ({ 
@@ -202,7 +222,7 @@ const Index = () => {
         return;
       }
 
-      setFirstStageAnalysis(data);
+      setFirstStageAnalysis({ ...data, trendData });
       toast({
         title: "분석 완료",
         description: "AI가 수집된 게시글 분석을 완료했습니다.",
@@ -654,7 +674,10 @@ const Index = () => {
           {/* First Stage Analysis */}
           {firstStageAnalysis && (
             <div className="mb-8">
-              <FirstStageAnalysis analysis={firstStageAnalysis} />
+              <FirstStageAnalysis 
+                analysis={firstStageAnalysis} 
+                trendData={firstStageAnalysis.trendData || []}
+              />
             </div>
           )}
 
