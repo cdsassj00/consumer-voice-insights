@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { HelpModal } from "@/components/HelpModal";
@@ -605,25 +606,66 @@ const Index = () => {
         )}
 
           {/* Search Results */}
-          {searchResults.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">
-                  {currentKeyword === "전체" ? "최근 수집된 소비자 의견" : `"${currentKeyword}" 검색 결과`}
-                </h2>
-                {currentKeyword === "전체" && (
+          {searchResults.length > 0 && (() => {
+            // 키워드별로 결과 그룹화
+            const groupedByKeyword = searchResults.reduce((acc, result) => {
+              const keyword = result.keyword || "기타";
+              if (!acc[keyword]) {
+                acc[keyword] = [];
+              }
+              acc[keyword].push(result);
+              return acc;
+            }, {} as Record<string, typeof searchResults>);
+
+            const keywords = Object.keys(groupedByKeyword).sort();
+            const totalCount = searchResults.length;
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {currentKeyword === "전체" ? "최근 수집된 소비자 의견" : `"${currentKeyword}" 검색 결과`}
+                  </h2>
                   <Badge variant="outline" className="text-sm">
-                    최근 {searchResults.length}개 게시글
+                    총 {totalCount}개 게시글
                   </Badge>
-                )}
+                </div>
+
+                <Tabs defaultValue="all" className="w-full">
+                  <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
+                    <TabsTrigger value="all" className="flex items-center gap-2">
+                      전체
+                      <Badge variant="secondary" className="ml-1">{totalCount}</Badge>
+                    </TabsTrigger>
+                    {keywords.map((keyword) => (
+                      <TabsTrigger key={keyword} value={keyword} className="flex items-center gap-2">
+                        {keyword}
+                        <Badge variant="secondary" className="ml-1">{groupedByKeyword[keyword].length}</Badge>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+
+                  <TabsContent value="all" className="mt-4">
+                    <SearchResultsList 
+                      results={searchResults}
+                      onAnalyze={handleBatchProcess}
+                      isProcessing={isProcessing}
+                    />
+                  </TabsContent>
+
+                  {keywords.map((keyword) => (
+                    <TabsContent key={keyword} value={keyword} className="mt-4">
+                      <SearchResultsList 
+                        results={groupedByKeyword[keyword]}
+                        onAnalyze={handleBatchProcess}
+                        isProcessing={isProcessing}
+                      />
+                    </TabsContent>
+                  ))}
+                </Tabs>
               </div>
-              <SearchResultsList 
-                results={searchResults}
-                onAnalyze={handleBatchProcess}
-                isProcessing={isProcessing}
-              />
-            </div>
-          )}
+            );
+          })()}
 
           {/* Summary Stats - only show if no detailed results yet */}
           {searchResult && searchResult.validResults > 0 && searchResults.length === 0 && (
