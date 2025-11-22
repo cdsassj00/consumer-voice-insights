@@ -137,6 +137,25 @@ const Index = () => {
     setKeywords(data || []);
   };
 
+  // 검색 기간을 날짜로 변환하는 함수
+  const getDateFromPeriod = (period: string): Date => {
+    const now = new Date();
+    switch (period) {
+      case 'd7':
+        return new Date(now.setDate(now.getDate() - 7));
+      case 'm1':
+        return new Date(now.setMonth(now.getMonth() - 1));
+      case 'm3':
+        return new Date(now.setMonth(now.getMonth() - 3));
+      case 'm6':
+        return new Date(now.setMonth(now.getMonth() - 6));
+      case 'y1':
+        return new Date(now.setFullYear(now.getFullYear() - 1));
+      default:
+        return new Date(now.setMonth(now.getMonth() - 3)); // 기본값: 3개월
+    }
+  };
+
   const fetchSearchResults = async (keyword: string) => {
     try {
       const { data, error } = await supabase
@@ -150,7 +169,17 @@ const Index = () => {
         return;
       }
 
-      setSearchResults(data || []);
+      // article_published_at 기준으로 검색 기간 필터링
+      const cutoffDate = getDateFromPeriod(searchPeriod);
+      const filteredResults = (data || []).filter(result => {
+        if (!result.article_published_at) {
+          return true; // 날짜 정보가 없는 경우는 포함
+        }
+        const publishedDate = new Date(result.article_published_at);
+        return publishedDate >= cutoffDate;
+      });
+
+      setSearchResults(filteredResults);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -169,11 +198,21 @@ const Index = () => {
         return;
       }
 
-      setSearchResults(data || []);
-      if (data && data.length > 0) {
+      // article_published_at 기준으로 검색 기간 필터링
+      const cutoffDate = getDateFromPeriod(searchPeriod);
+      const filteredResults = (data || []).filter(result => {
+        if (!result.article_published_at) {
+          return true; // 날짜 정보가 없는 경우는 포함
+        }
+        const publishedDate = new Date(result.article_published_at);
+        return publishedDate >= cutoffDate;
+      });
+
+      setSearchResults(filteredResults);
+      if (filteredResults && filteredResults.length > 0) {
         setCurrentKeyword("전체"); // 전체 결과 표시 중임을 나타냄
         // 1차 DB 결과 자동 분석 실행
-        analyzeFirstStageResults(data);
+        analyzeFirstStageResults(filteredResults);
       }
     } catch (error) {
       console.error('Error:', error);
