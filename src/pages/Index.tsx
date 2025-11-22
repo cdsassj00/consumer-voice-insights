@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, BarChart3 } from "lucide-react";
+import { Search, Loader2, BarChart3, LogOut } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Session } from "@supabase/supabase-js";
 
 interface SearchResultData {
   totalFound: number;
@@ -17,7 +19,39 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (!session) {
+          navigate("/auth");
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "로그아웃 완료",
+      description: "로그아웃되었습니다.",
+    });
+  };
 
   const handleSearch = async () => {
     if (!keyword.trim()) {
@@ -43,6 +77,7 @@ const Index = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
           },
           body: JSON.stringify({ keyword }),
         }
@@ -98,6 +133,7 @@ const Index = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
           },
           body: JSON.stringify({ keyword }),
         }
@@ -138,13 +174,17 @@ const Index = () => {
               <h1 className="text-4xl font-bold text-foreground">
                 한국 소비자 인사이트 플랫폼
               </h1>
-              <div className="flex-1 flex justify-end">
+              <div className="flex-1 flex justify-end gap-2">
                 <Link to="/results">
                   <Button variant="outline" size="sm">
                     <BarChart3 className="w-4 h-4 mr-2" />
                     분석 결과 보기
                   </Button>
                 </Link>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  로그아웃
+                </Button>
               </div>
             </div>
             <p className="text-lg text-muted-foreground">

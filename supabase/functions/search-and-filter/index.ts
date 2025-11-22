@@ -32,7 +32,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Starting search for keyword: ${keyword}`);
+    // Get user from JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Starting search for keyword: ${keyword}, user: ${user.id}`);
 
     // Get API keys from environment
     const googleApiKey = Deno.env.get('GOOGLE_SEARCH_API_KEY');
@@ -152,19 +180,20 @@ JSON 형식으로만 답변하세요:
     console.log(`Filtered results: ${validResults.length} valid out of ${items.length}`);
 
     // Step 3: Save valid results to database
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const insertPromises = validResults.map(result => 
-      supabase.from('search_results').insert({
+      supabaseAdmin.from('search_results').insert({
         keyword,
         url: result.url,
         title: result.title,
         snippet: result.snippet,
         source_domain: result.source_domain,
-        status: 'pending'
+        status: 'pending',
+        user_id: user.id
       })
     );
 

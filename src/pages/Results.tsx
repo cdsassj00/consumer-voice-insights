@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Session } from "@supabase/supabase-js";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AnalysisResult {
   id: string;
@@ -53,10 +55,45 @@ const Results = () => {
   
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchResults();
-  }, [keyword]);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (!session) {
+          navigate("/auth");
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (session) {
+      fetchResults();
+    }
+  }, [keyword, session]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "로그아웃 완료",
+      description: "로그아웃되었습니다.",
+    });
+  };
 
   const fetchResults = async () => {
     setIsLoading(true);
@@ -157,12 +194,18 @@ const Results = () => {
       <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
         {/* Header */}
         <div className="space-y-4">
-          <Link to="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              검색으로 돌아가기
+          <div className="flex justify-between items-center">
+            <Link to="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                검색으로 돌아가기
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              로그아웃
             </Button>
-          </Link>
+          </div>
           
           <div>
             <h1 className="text-4xl font-bold text-foreground">
