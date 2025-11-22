@@ -91,6 +91,17 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // 검색 기간 변경 시 자동으로 결과 재필터링
+  useEffect(() => {
+    if (!session?.user || searchResults.length === 0) return;
+    
+    if (currentKeyword === "전체") {
+      fetchRecentSearchResults();
+    } else if (currentKeyword) {
+      fetchSearchResults(currentKeyword);
+    }
+  }, [searchPeriod]); // searchPeriod 변경 감지
+
   // Realtime subscription for search results status updates
   useEffect(() => {
     if (!currentKeyword || !session?.user) return;
