@@ -185,13 +185,15 @@ const Index = () => {
     
     setIsAnalyzingFirstStage(true);
     try {
-      // 원본 게재일자 기준으로 날짜별 게시글 수 집계
       const dateCounts = results.reduce((acc, result) => {
-        // article_published_at이 있으면 사용, 없으면 created_at 사용
-        const dateSource = result.article_published_at || result.created_at;
-        const date = new Date(dateSource).toLocaleDateString('ko-KR', { 
-          month: 'short', 
-          day: 'numeric' 
+        // article_published_at이 있는 경우에만 트렌드에 포함 (수집일 created_at은 사용하지 않음)
+        if (!result.article_published_at) {
+          return acc;
+        }
+
+        const date = new Date(result.article_published_at).toLocaleDateString('ko-KR', {
+          month: 'short',
+          day: 'numeric',
         });
         acc[date] = (acc[date] || 0) + 1;
         return acc;
