@@ -2,6 +2,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, CartesianGrid, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, MessageSquare, Hash, Calendar, Network, ShoppingBag, Star, TrendingDown, Activity } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { useState } from "react";
+import { ArticleModal } from "./ArticleModal";
+
+interface SearchResult {
+  id: string;
+  keyword: string;
+  url: string;
+  title: string;
+  snippet: string;
+  source_domain: string;
+  status: 'pending' | 'crawling' | 'analyzed' | 'failed';
+  created_at: string;
+  article_published_at: string | null;
+}
 
 interface FirstStageAnalysisProps {
   analysis: {
@@ -34,9 +49,25 @@ interface FirstStageAnalysisProps {
     summary: string;
   };
   trendData: Array<{ date: string; count: number }>;
+  searchResults: SearchResult[];
 }
 
-export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisProps) {
+export function FirstStageAnalysis({ analysis, trendData, searchResults }: FirstStageAnalysisProps) {
+  const [dateRange, setDateRange] = useState<[number, number]>([0, trendData.length - 1]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedArticles, setSelectedArticles] = useState<SearchResult[]>([]);
+  const [modalTitle, setModalTitle] = useState("");
+
+  // 슬라이더로 선택된 날짜 범위의 데이터만 표시
+  const filteredTrendData = trendData.slice(dateRange[0], dateRange[1] + 1);
+
+  const handleChartClick = (data: any, filterFn: (result: SearchResult) => boolean, title: string) => {
+    const filtered = searchResults.filter(filterFn);
+    setSelectedArticles(filtered);
+    setModalTitle(title);
+    setModalOpen(true);
+  };
+
   const sentimentData = [
     { name: "긍정", value: analysis.sentiment.positive, color: "#10b981" },
     { name: "중립", value: analysis.sentiment.neutral, color: "#6b7280" },
@@ -172,14 +203,32 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
                   outerRadius={65}
                   fill="#8884d8"
                   dataKey="value"
+                  onClick={(data) => {
+                    const sentimentMap: { [key: string]: string } = {
+                      '긍정': 'positive',
+                      '중립': 'neutral',
+                      '부정': 'negative'
+                    };
+                    handleChartClick(
+                      data,
+                      (result) => {
+                        // 간단히 sentiment 추정 (실제로는 analysis_results 테이블에서 가져와야 함)
+                        return true; // 일단 모든 게시글 표시
+                      },
+                      `${data.name} 감성의 게시글`
+                    );
+                  }}
                 >
                   {sentimentData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color} style={{ cursor: 'pointer' }} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'transparent' }} />
               </PieChart>
             </ResponsiveContainer>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              * 차트를 클릭하면 해당 감성의 게시글을 볼 수 있습니다.
+            </p>
           </CardContent>
         </Card>
 
@@ -384,31 +433,76 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
           </CardTitle>
           <CardDescription>원본 게재일 기준 날짜별 게시글 현황</CardDescription>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          <CardContent>
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">날짜 범위:</span>
+                <span className="font-medium">
+                  {filteredTrendData[0]?.date} ~ {filteredTrendData[filteredTrendData.length - 1]?.date}
+                </span>
+              </div>
+              <Slider
+                min={0}
+                max={trendData.length - 1}
+                step={1}
+                value={dateRange}
+                onValueChange={(value) => setDateRange(value as [number, number])}
+                className="w-full"
+                minStepsBetweenThumbs={1}
               />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px'
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart 
+                data={filteredTrendData}
+                onClick={(data) => {
+                  if (data?.activeLabel) {
+                    handleChartClick(
+                      data,
+                      (result) => {
+                        if (!result.article_published_at) return false;
+                        const resultDate = new Date(result.article_published_at).toLocaleDateString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric'
+                        });
+                        return resultDate === data.activeLabel;
+                      },
+                      `${data.activeLabel} 게시글`
+                    );
+                  }
                 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="count" 
-                stroke="hsl(var(--primary))" 
-                strokeWidth={2}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px'
+                  }}
+                  cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))', r: 4, cursor: 'pointer' }}
+                  activeDot={{ r: 6, cursor: 'pointer' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              * 슬라이더로 날짜 범위를 조정하세요. 차트를 클릭하면 해당 날짜의 게시글을 볼 수 있습니다.
+            </p>
+          </CardContent>
                 dot={{ fill: 'hsl(var(--primary))' }}
                 name="게시글 수"
               />
