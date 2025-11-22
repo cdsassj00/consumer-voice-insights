@@ -380,9 +380,9 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            게시글 수집 트렌드
+            게시글 원본 게재일 트렌드
           </CardTitle>
-          <CardDescription>날짜별 게시글 수집 현황</CardDescription>
+          <CardDescription>원본 게재일 기준 날짜별 게시글 현황</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
