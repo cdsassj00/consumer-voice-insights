@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, CartesianGrid } from "recharts";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, MessageSquare, Hash } from "lucide-react";
+import { TrendingUp, MessageSquare, Hash, Calendar } from "lucide-react";
 
 interface FirstStageAnalysisProps {
   analysis: {
@@ -14,9 +14,10 @@ interface FirstStageAnalysisProps {
     mainTopics: Array<{ topic: string; count: number }>;
     summary: string;
   };
+  trendData: Array<{ date: string; count: number }>;
 }
 
-export function FirstStageAnalysis({ analysis }: FirstStageAnalysisProps) {
+export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisProps) {
   const sentimentData = [
     { name: "긍정", value: analysis.sentiment.positive, color: "#10b981" },
     { name: "중립", value: analysis.sentiment.neutral, color: "#6b7280" },
@@ -84,6 +85,48 @@ export function FirstStageAnalysis({ analysis }: FirstStageAnalysisProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* 수집 트렌드 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            게시글 수집 트렌드
+          </CardTitle>
+          <CardDescription>날짜별 게시글 수집 현황</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="date" 
+                stroke="hsl(var(--muted-foreground))"
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="count" 
+                stroke="hsl(var(--primary))" 
+                strokeWidth={2}
+                dot={{ fill: 'hsl(var(--primary))' }}
+                name="게시글 수"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* 주요 키워드 */}
       <Card>
