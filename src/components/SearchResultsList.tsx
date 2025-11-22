@@ -14,6 +14,7 @@ interface SearchResult {
   snippet: string;
   source_domain: string;
   status: 'pending' | 'crawling' | 'analyzed' | 'failed';
+  article_published_at: string | null;
 }
 
 interface SearchResultsListProps {
@@ -25,12 +26,10 @@ interface SearchResultsListProps {
 export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchResultsListProps) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalUrl, setModalUrl] = useState("");
-  const [modalTitle, setModalTitle] = useState("");
+  const [selectedArticle, setSelectedArticle] = useState<SearchResult | null>(null);
 
-  const openModal = (url: string, title: string) => {
-    setModalUrl(url);
-    setModalTitle(title);
+  const openModal = (result: SearchResult) => {
+    setSelectedArticle(result);
     setModalOpen(true);
   };
 
@@ -150,7 +149,7 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
                             variant="ghost"
                             size="sm"
                             className="h-6 px-2 text-primary hover:underline"
-                            onClick={() => openModal(result.url, result.title)}
+                            onClick={() => openModal(result)}
                           >
                             <Eye className="w-3 h-3 mr-1" />
                             원문 보기
@@ -198,8 +197,8 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
     <ArticleModal
       isOpen={modalOpen}
       onClose={() => setModalOpen(false)}
-      url={modalUrl}
-      title={modalTitle}
+      articles={selectedArticle ? [selectedArticle] : []}
+      title={selectedArticle?.title || ""}
     />
   </>
   );
