@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, BarChart3 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface SearchResultData {
@@ -132,9 +133,20 @@ const Index = () => {
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">
-              한국 소비자 인사이트 플랫폼
-            </h1>
+            <div className="flex items-center justify-between">
+              <div className="flex-1" />
+              <h1 className="text-4xl font-bold text-foreground">
+                한국 소비자 인사이트 플랫폼
+              </h1>
+              <div className="flex-1 flex justify-end">
+                <Link to="/results">
+                  <Button variant="outline" size="sm">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    분석 결과 보기
+                  </Button>
+                </Link>
+              </div>
+            </div>
             <p className="text-lg text-muted-foreground">
               실제 소비자들의 솔직한 리뷰와 니즈를 분석합니다
             </p>
@@ -235,21 +247,30 @@ const Index = () => {
                   </div>
                 </div>
                 
-                <Button 
-                  onClick={handleBatchProcess}
-                  disabled={isProcessing}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      2차 분석 진행 중...
-                    </>
-                  ) : (
-                    "2차 분석 시작 (Firecrawl + AI)"
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleBatchProcess}
+                    disabled={isProcessing}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        2차 분석 진행 중...
+                      </>
+                    ) : (
+                      "2차 분석 시작 (Firecrawl + AI)"
+                    )}
+                  </Button>
+                  
+                  <Link to={`/results?keyword=${encodeURIComponent(keyword)}`} className="flex-1">
+                    <Button variant="outline" className="w-full" size="lg">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      결과 보기
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           )}
