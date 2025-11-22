@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut, Filter, X, Calendar } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut, Filter, X, Calendar, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
 import { Session } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
@@ -246,6 +247,111 @@ const Results = () => {
     }
   };
 
+  // CSV 다운로드 함수
+  const downloadCSV = () => {
+    const headers = [
+      '제목',
+      'URL',
+      '도메인',
+      '발행일',
+      '키워드',
+      '감성',
+      '카테고리',
+      '요약',
+      '주요 토픽',
+      '제품명',
+      '브랜드명',
+      '가격 논의',
+      '추천 수준',
+      '주요 이슈',
+      '주요 칭찬'
+    ];
+
+    const rows = results.map(result => [
+      result.search_results.title,
+      result.search_results.url,
+      result.search_results.source_domain,
+      result.search_results.article_published_at 
+        ? format(new Date(result.search_results.article_published_at), 'yyyy-MM-dd')
+        : format(new Date(result.search_results.created_at), 'yyyy-MM-dd'),
+      result.search_results.keyword,
+      SENTIMENT_LABELS[result.sentiment],
+      result.category || '',
+      result.summary || '',
+      (result.key_topics || []).join(', '),
+      result.structured_data?.productMentioned || '',
+      result.structured_data?.brandMentioned || '',
+      result.structured_data?.priceDiscussed ? '예' : '아니오',
+      result.structured_data?.recommendationLevel?.toString() || '',
+      (result.structured_data?.mainIssues || []).join(', '),
+      (result.structured_data?.mainPraises || []).join(', ')
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `분석결과_${keyword || '전체'}_${format(new Date(), 'yyyyMMdd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "CSV 다운로드 완료",
+      description: `${results.length}개의 분석 결과가 다운로드되었습니다.`,
+    });
+  };
+
+  // Excel 다운로드 함수
+  const downloadExcel = () => {
+    const data = results.map(result => ({
+      '제목': result.search_results.title,
+      'URL': result.search_results.url,
+      '도메인': result.search_results.source_domain,
+      '발행일': result.search_results.article_published_at 
+        ? format(new Date(result.search_results.article_published_at), 'yyyy-MM-dd')
+        : format(new Date(result.search_results.created_at), 'yyyy-MM-dd'),
+      '키워드': result.search_results.keyword,
+      '감성': SENTIMENT_LABELS[result.sentiment],
+      '카테고리': result.category || '',
+      '요약': result.summary || '',
+      '주요 토픽': (result.key_topics || []).join(', '),
+      '제품명': result.structured_data?.productMentioned || '',
+      '브랜드명': result.structured_data?.brandMentioned || '',
+      '가격 논의': result.structured_data?.priceDiscussed ? '예' : '아니오',
+      '추천 수준': result.structured_data?.recommendationLevel?.toString() || '',
+      '주요 이슈': (result.structured_data?.mainIssues || []).join(', '),
+      '주요 칭찬': (result.structured_data?.mainPraises || []).join(', ')
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '분석 결과');
+
+    // 컬럼 너비 자동 조정
+    const maxWidth = 50;
+    const wscols = Object.keys(data[0] || {}).map(key => ({
+      wch: Math.min(maxWidth, Math.max(
+        key.length,
+        ...data.map(row => String(row[key as keyof typeof row] || '').length)
+      ))
+    }));
+    worksheet['!cols'] = wscols;
+
+    XLSX.writeFile(workbook, `분석결과_${keyword || '전체'}_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+
+    toast({
+      title: "Excel 다운로드 완료",
+      description: `${results.length}개의 분석 결과가 다운로드되었습니다.`,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -272,10 +378,30 @@ const Results = () => {
                 검색으로 돌아가기
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              로그아웃
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={downloadCSV}
+                disabled={results.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                CSV 다운로드
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={downloadExcel}
+                disabled={results.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Excel 다운로드
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                로그아웃
+              </Button>
+            </div>
           </div>
           
           <div className="space-y-4">
