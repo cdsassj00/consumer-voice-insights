@@ -14,7 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_results: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          full_content: string | null
+          id: string
+          is_consumer_review: boolean
+          key_topics: Json | null
+          search_result_id: string
+          sentiment: Database["public"]["Enums"]["sentiment_type"] | null
+          structured_data: Json | null
+          summary: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          full_content?: string | null
+          id?: string
+          is_consumer_review: boolean
+          key_topics?: Json | null
+          search_result_id: string
+          sentiment?: Database["public"]["Enums"]["sentiment_type"] | null
+          structured_data?: Json | null
+          summary?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          full_content?: string | null
+          id?: string
+          is_consumer_review?: boolean
+          key_topics?: Json | null
+          search_result_id?: string
+          sentiment?: Database["public"]["Enums"]["sentiment_type"] | null
+          structured_data?: Json | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_results_search_result_id_fkey"
+            columns: ["search_result_id"]
+            isOneToOne: false
+            referencedRelation: "search_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_results: {
+        Row: {
+          created_at: string | null
+          id: string
+          keyword: string
+          snippet: string | null
+          source_domain: string | null
+          status: Database["public"]["Enums"]["search_status"] | null
+          title: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          keyword: string
+          snippet?: string | null
+          source_domain?: string | null
+          status?: Database["public"]["Enums"]["search_status"] | null
+          title: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          keyword?: string
+          snippet?: string | null
+          source_domain?: string | null
+          status?: Database["public"]["Enums"]["search_status"] | null
+          title?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +105,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      search_status: "pending" | "crawling" | "analyzed" | "failed"
+      sentiment_type: "positive" | "negative" | "neutral" | "mixed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +233,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      search_status: ["pending", "crawling", "analyzed", "failed"],
+      sentiment_type: ["positive", "negative", "neutral", "mixed"],
+    },
   },
 } as const
