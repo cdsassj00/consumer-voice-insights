@@ -11,7 +11,7 @@ import { Session } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import { subDays, subMonths, startOfDay, endOfDay } from "date-fns";
+import { subDays, subMonths, startOfDay, endOfDay, format } from "date-fns";
 
 interface AnalysisResult {
   id: string;
@@ -488,16 +488,23 @@ const Results = () => {
                           {result.search_results.title}
                         </CardTitle>
                       </div>
-                      <CardDescription className="flex items-center gap-2">
-                        <span>{result.search_results.source_domain}</span>
-                        <a 
-                          href={result.search_results.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-primary hover:underline"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
+                      <CardDescription className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span>{result.search_results.source_domain}</span>
+                          <a 
+                            href={result.search_results.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-primary hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {result.search_results.article_published_at 
+                            ? format(new Date(result.search_results.article_published_at), 'yyyy-MM-dd')
+                            : format(new Date(result.search_results.created_at), 'yyyy-MM-dd')} 발행
+                        </span>
                       </CardDescription>
                     </div>
                     <Badge variant="outline">
