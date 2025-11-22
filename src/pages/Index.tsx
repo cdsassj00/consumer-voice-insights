@@ -361,9 +361,9 @@ const Index = () => {
           </Card>
 
           {/* Keyword Manager */}
-          {showKeywordManager && (
-            <KeywordManager />
-          )}
+        {showKeywordManager && session?.user && (
+          <KeywordManager userId={session.user.id} />
+        )}
 
           {/* Info Cards */}
           <div className="grid md:grid-cols-3 gap-4">
