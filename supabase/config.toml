@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.reanalyze-missing-dates]
 verify_jwt = true
+
+[functions.extract-dates-from-snippets]
+verify_jwt = true
