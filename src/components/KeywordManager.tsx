@@ -22,7 +22,7 @@ const CATEGORY_LABELS = {
   other: '기타',
 };
 
-export const KeywordManager = () => {
+export const KeywordManager = ({ userId }: { userId: string }) => {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [newKeyword, setNewKeyword] = useState("");
   const [newCategory, setNewCategory] = useState<'brand' | 'product' | 'service' | 'other'>('brand');
@@ -67,6 +67,7 @@ export const KeywordManager = () => {
       .insert([{
         category: newCategory,
         keyword: newKeyword.trim(),
+        user_id: userId,
       }]);
 
     if (error) {
