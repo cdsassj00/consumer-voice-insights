@@ -29,9 +29,13 @@ interface SearchResult {
 
 interface Keyword {
   id: string;
-  category: string;
+  category: string | null;
   keyword: string;
   is_active: boolean;
+  is_favorite: boolean;
+  search_count: number;
+  last_searched_at: string | null;
+  source: string;
 }
 
 const Index = () => {
@@ -131,6 +135,39 @@ const Index = () => {
     setIsSearching(true);
     
     try {
+      // Auto-save keyword to search history (upsert)
+      const { data: existingKeyword } = await supabase
+        .from('keywords')
+        .select('id, search_count')
+        .eq('keyword', searchKeyword)
+        .eq('user_id', session?.user.id)
+        .maybeSingle();
+
+      if (existingKeyword) {
+        // Update existing keyword
+        await supabase
+          .from('keywords')
+          .update({
+            search_count: (existingKeyword.search_count || 0) + 1,
+            last_searched_at: new Date().toISOString(),
+          })
+          .eq('id', existingKeyword.id);
+      } else {
+        // Insert new keyword with source: 'auto'
+        await supabase
+          .from('keywords')
+          .insert({
+            keyword: searchKeyword,
+            user_id: session?.user.id,
+            source: 'auto',
+            search_count: 1,
+            last_searched_at: new Date().toISOString(),
+          });
+      }
+
+      // Refresh keywords list
+      await fetchKeywords();
+
       toast({
         title: "검색 시작",
         description: `"${searchKeyword}" 키워드로 한국 소비자 의견을 검색합니다...`,
@@ -326,7 +363,7 @@ const Index = () => {
                     <SelectContent>
                       {keywords.map((kw) => (
                         <SelectItem key={kw.id} value={kw.id}>
-                          [{kw.category === 'brand' ? '브랜드' : kw.category === 'product' ? '제품' : kw.category === 'service' ? '서비스' : '기타'}] {kw.keyword}
+                          {kw.category && `[${kw.category === 'brand' ? '브랜드' : kw.category === 'product' ? '제품' : kw.category === 'service' ? '서비스' : '기타'}] `}{kw.keyword}
                         </SelectItem>
                       ))}
                     </SelectContent>
