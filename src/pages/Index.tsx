@@ -487,24 +487,15 @@ const Index = () => {
         description: "원본 게재일이 누락된 데이터를 재분석합니다...",
       });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reanalyze-missing-dates`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({}),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('reanalyze-missing-dates', {
+        body: {}
+      });
 
-      if (!response.ok) {
-        throw new Error('재분석 요청 실패');
+      if (error) {
+        console.error('Reanalysis error:', error);
+        throw error;
       }
 
-      const data = await response.json();
-      
       toast({
         title: "재분석 완료",
         description: `총 ${data.total}개 중 ${data.succeeded}개 재분석 완료, ${data.failed}개 실패`,
@@ -523,7 +514,7 @@ const Index = () => {
       console.error('Reanalysis error:', error);
       toast({
         title: "재분석 실패",
-        description: "재분석 중 오류가 발생했습니다.",
+        description: error instanceof Error ? error.message : "재분석 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     } finally {
