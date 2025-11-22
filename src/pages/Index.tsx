@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, BarChart3, LogOut } from "lucide-react";
+import { Search, Loader2, BarChart3, LogOut, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Session } from "@supabase/supabase-js";
+import { SearchResultsList } from "@/components/SearchResultsList";
 
 interface SearchResultData {
   totalFound: number;
@@ -14,11 +15,22 @@ interface SearchResultData {
   savedToDatabase: number;
 }
 
+interface SearchResult {
+  id: string;
+  url: string;
+  title: string;
+  snippet: string;
+  source_domain: string;
+  status: 'pending' | 'crawling' | 'analyzed' | 'failed';
+}
+
 const Index = () => {
   const [keyword, setKeyword] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [currentKeyword, setCurrentKeyword] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -51,6 +63,25 @@ const Index = () => {
       title: "로그아웃 완료",
       description: "로그아웃되었습니다.",
     });
+  };
+
+  const fetchSearchResults = async (keyword: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('search_results')
+        .select('*')
+        .eq('keyword', keyword)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching search results:', error);
+        return;
+      }
+
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   const handleSearch = async () => {
@@ -90,6 +121,7 @@ const Index = () => {
       const data = await response.json();
       
       setSearchResult(data);
+      setCurrentKeyword(keyword);
       
       toast({
         title: "검색 완료",
@@ -97,6 +129,9 @@ const Index = () => {
       });
 
       console.log('Search results:', data);
+
+      // Fetch the filtered results
+      await fetchSearchResults(keyword);
     } catch (error) {
       console.error('Search error:', error);
       toast({
@@ -109,8 +144,8 @@ const Index = () => {
     }
   };
 
-  const handleBatchProcess = async () => {
-    if (!keyword.trim()) {
+  const handleBatchProcess = async (selectedIds?: string[]) => {
+    if (!currentKeyword && !selectedIds) {
       toast({
         title: "키워드를 입력하세요",
         description: "분석할 키워드를 입력해주세요.",
@@ -127,30 +162,65 @@ const Index = () => {
         description: "Firecrawl로 전문을 수집하고 AI가 상세 분석을 진행합니다...",
       });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-batch`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ keyword }),
-        }
-      );
+      // Process selected items or all items for the keyword
+      if (selectedIds && selectedIds.length > 0) {
+        // Process specific items
+        for (const id of selectedIds) {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crawl-and-analyze`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({ searchResultId: id }),
+            }
+          );
 
-      if (!response.ok) {
-        throw new Error('배치 처리 요청 실패');
+          if (!response.ok) {
+            console.error(`Failed to process ${id}`);
+          }
+
+          // Add delay to avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        toast({
+          title: "2차 분석 완료",
+          description: `${selectedIds.length}개 항목 분석이 완료되었습니다.`,
+        });
+      } else {
+        // Process all items for the keyword (original batch process)
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-batch`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token}`,
+            },
+            body: JSON.stringify({ keyword: currentKeyword }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('배치 처리 요청 실패');
+        }
+
+        const data = await response.json();
+        
+        toast({
+          title: "2차 분석 완료",
+          description: `${data.total}개 중 ${data.succeeded}개 분석 완료, ${data.failed}개 실패`,
+        });
+
+        console.log('Batch processing results:', data);
       }
 
-      const data = await response.json();
+      // Refresh search results
+      await fetchSearchResults(currentKeyword);
       
-      toast({
-        title: "2차 분석 완료",
-        description: `${data.total}개 중 ${data.succeeded}개 분석 완료, ${data.failed}개 실패`,
-      });
-
-      console.log('Batch processing results:', data);
     } catch (error) {
       console.error('Batch processing error:', error);
       toast({
@@ -257,7 +327,16 @@ const Index = () => {
           </div>
 
           {/* Search Results */}
-          {searchResult && searchResult.validResults > 0 && (
+          {searchResults.length > 0 && (
+            <SearchResultsList
+              results={searchResults}
+              onAnalyze={handleBatchProcess}
+              isProcessing={isProcessing}
+            />
+          )}
+
+          {/* Summary Stats - only show if no detailed results yet */}
+          {searchResult && searchResult.validResults > 0 && searchResults.length === 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>검색 결과</CardTitle>
@@ -287,30 +366,15 @@ const Index = () => {
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleBatchProcess}
-                    disabled={isProcessing}
-                    className="flex-1"
-                    size="lg"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        2차 분석 진행 중...
-                      </>
-                    ) : (
-                      "2차 분석 시작 (Firecrawl + AI)"
-                    )}
-                  </Button>
-                  
-                  <Link to={`/results?keyword=${encodeURIComponent(keyword)}`} className="flex-1">
-                    <Button variant="outline" className="w-full" size="lg">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      결과 보기
-                    </Button>
-                  </Link>
-                </div>
+                <Button 
+                  onClick={() => handleBatchProcess()}
+                  disabled={isProcessing}
+                  className="w-full"
+                  size="lg"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
+                  {isProcessing ? '분석 진행 중...' : '결과 새로고침'}
+                </Button>
               </CardContent>
             </Card>
           )}
