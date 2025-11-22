@@ -11,6 +11,7 @@ interface AnalysisResult {
   category: string;
   keyTopics: string[];
   summary: string;
+  publishedDate?: string; // ISO 8601 format (YYYY-MM-DD)
   structuredData: {
     productMentioned?: string;
     brandMentioned?: string;
@@ -124,13 +125,16 @@ Deno.serve(async (req) => {
 
     console.log(`Content crawled, length: ${fullContent.length} characters`);
 
-    // Step 2: Analyze with OpenAI
+    // Step 2: Analyze with OpenAI (including date extraction)
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const analysisPrompt = `다음은 한국 커뮤니티 게시글의 전문입니다. 이 글을 분석해주세요.
 
 제목: ${searchResult.title}
 URL: ${searchResult.url}
 전문:
 ${fullContent.substring(0, 4000)}
+
+오늘 날짜: ${currentDate}
 
 다음 항목을 분석하여 JSON 형식으로만 답변하세요:
 {
@@ -139,6 +143,7 @@ ${fullContent.substring(0, 4000)}
   "category": "제품 카테고리나 주제",
   "keyTopics": ["주요 토픽1", "주요 토픽2", ...],
   "summary": "200자 이내 요약",
+  "publishedDate": "YYYY-MM-DD 형식의 게시글 작성일/발행일. 게시글에서 작성일을 찾아서 ISO 8601 형식(YYYY-MM-DD)으로 변환하세요. '3일 전', '1주일 전' 같은 상대적 시간도 오늘 날짜 기준으로 계산하세요. 찾을 수 없으면 null",
   "structuredData": {
     "productMentioned": "언급된 제품명",
     "brandMentioned": "언급된 브랜드",
@@ -147,7 +152,9 @@ ${fullContent.substring(0, 4000)}
     "mainIssues": ["문제점1", "문제점2", ...],
     "mainPraises": ["장점1", "장점2", ...]
   }
-}`;
+}
+
+중요: publishedDate는 반드시 YYYY-MM-DD 형식이어야 합니다. 예: "2024-03-15", "2023-12-25" 등`;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -192,6 +199,28 @@ ${fullContent.substring(0, 4000)}
 
     console.log('Analysis completed:', analysis);
 
+    // Parse and validate the published date
+    let articlePublishedAt: string | null = null;
+    if (analysis.publishedDate) {
+      try {
+        // Validate ISO 8601 date format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateRegex.test(analysis.publishedDate)) {
+          const parsedDate = new Date(analysis.publishedDate);
+          if (!isNaN(parsedDate.getTime())) {
+            articlePublishedAt = parsedDate.toISOString();
+            console.log(`Parsed published date: ${articlePublishedAt}`);
+          } else {
+            console.warn(`Invalid date value: ${analysis.publishedDate}`);
+          }
+        } else {
+          console.warn(`Date format mismatch: ${analysis.publishedDate}`);
+        }
+      } catch (error) {
+        console.error('Error parsing published date:', error);
+      }
+    }
+
     // Step 3: Save analysis results
     const { error: insertError } = await supabase
       .from('analysis_results')
@@ -220,19 +249,25 @@ ${fullContent.substring(0, 4000)}
       );
     }
 
-    // Update search result status to analyzed
+    // Update search result status to analyzed and set published date
+    const updateData: Record<string, any> = { status: 'analyzed' };
+    if (articlePublishedAt) {
+      updateData.article_published_at = articlePublishedAt;
+    }
+
     await supabase
       .from('search_results')
-      .update({ status: 'analyzed' })
+      .update(updateData)
       .eq('id', searchResultId);
 
-    console.log('Analysis saved successfully');
+    console.log(`Analysis saved successfully. Published date: ${articlePublishedAt || 'not found'}`);
 
     return new Response(
       JSON.stringify({
         message: 'Crawl and analysis completed',
         searchResultId,
-        analysis
+        analysis,
+        articlePublishedAt
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
