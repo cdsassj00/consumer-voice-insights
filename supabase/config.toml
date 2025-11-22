@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.process-batch]
 verify_jwt = true
+
+[functions.analyze-first-stage]
+verify_jwt = true

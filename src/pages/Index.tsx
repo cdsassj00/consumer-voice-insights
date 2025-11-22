@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { HelpModal } from "@/components/HelpModal";
+import { FirstStageAnalysis } from "@/components/FirstStageAnalysis";
 
 interface SearchResultData {
   totalFound: number;
@@ -52,6 +53,8 @@ const Index = () => {
   const [showKeywordManager, setShowKeywordManager] = useState(false);
   const [searchPeriod, setSearchPeriod] = useState("m3"); // 검색 기간 (기본값: 최근 3개월)
   const [searchMode, setSearchMode] = useState<'quick' | 'full'>('quick'); // 검색 모드
+  const [firstStageAnalysis, setFirstStageAnalysis] = useState<any>(null);
+  const [isAnalyzingFirstStage, setIsAnalyzingFirstStage] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
@@ -167,9 +170,52 @@ const Index = () => {
       setSearchResults(data || []);
       if (data && data.length > 0) {
         setCurrentKeyword("전체"); // 전체 결과 표시 중임을 나타냄
+        // 1차 DB 결과 자동 분석 실행
+        analyzeFirstStageResults(data);
       }
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const analyzeFirstStageResults = async (results: SearchResult[]) => {
+    if (results.length === 0) return;
+    
+    setIsAnalyzingFirstStage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-first-stage', {
+        body: { 
+          results: results.map(r => ({ 
+            title: r.title, 
+            snippet: r.snippet 
+          })) 
+        }
+      });
+
+      if (error) {
+        console.error('Error analyzing first stage results:', error);
+        toast({
+          title: "분석 오류",
+          description: "분석 중 오류가 발생했습니다.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setFirstStageAnalysis(data);
+      toast({
+        title: "분석 완료",
+        description: "AI가 수집된 게시글 분석을 완료했습니다.",
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "분석 오류",
+        description: "분석 중 오류가 발생했습니다.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingFirstStage(false);
     }
   };
 
@@ -604,6 +650,26 @@ const Index = () => {
         {showKeywordManager && session?.user && (
           <KeywordManager userId={session.user.id} />
         )}
+
+          {/* First Stage Analysis */}
+          {firstStageAnalysis && (
+            <div className="mb-8">
+              <FirstStageAnalysis analysis={firstStageAnalysis} />
+            </div>
+          )}
+
+          {isAnalyzingFirstStage && (
+            <div className="mb-8">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-foreground">AI가 수집된 게시글을 분석하고 있습니다...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Search Results */}
           {searchResults.length > 0 && (() => {
