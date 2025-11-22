@@ -78,6 +78,7 @@ const Index = () => {
         navigate("/auth");
       } else {
         fetchKeywords();
+        fetchRecentSearchResults(); // 최근 1차 DB 결과 자동 로드
       }
     });
 
@@ -144,6 +145,28 @@ const Index = () => {
       }
 
       setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchRecentSearchResults = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('search_results')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50); // 최근 50개 게시글 표시
+
+      if (error) {
+        console.error('Error fetching recent search results:', error);
+        return;
+      }
+
+      setSearchResults(data || []);
+      if (data && data.length > 0) {
+        setCurrentKeyword("전체"); // 전체 결과 표시 중임을 나타냄
+      }
     } catch (error) {
       console.error('Error:', error);
     }
@@ -583,11 +606,23 @@ const Index = () => {
 
           {/* Search Results */}
           {searchResults.length > 0 && (
-            <SearchResultsList
-              results={searchResults}
-              onAnalyze={handleBatchProcess}
-              isProcessing={isProcessing}
-            />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-foreground">
+                  {currentKeyword === "전체" ? "최근 수집된 소비자 의견" : `"${currentKeyword}" 검색 결과`}
+                </h2>
+                {currentKeyword === "전체" && (
+                  <Badge variant="outline" className="text-sm">
+                    최근 {searchResults.length}개 게시글
+                  </Badge>
+                )}
+              </div>
+              <SearchResultsList 
+                results={searchResults}
+                onAnalyze={handleBatchProcess}
+                isProcessing={isProcessing}
+              />
+            </div>
           )}
 
           {/* Summary Stats - only show if no detailed results yet */}
