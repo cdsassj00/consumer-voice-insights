@@ -23,12 +23,36 @@ const Index = () => {
     setIsSearching(true);
     
     try {
-      // TODO: API 호출 구현
       toast({
         title: "검색 시작",
         description: `"${keyword}" 키워드로 한국 소비자 의견을 검색합니다...`,
       });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-and-filter`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ keyword }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('검색 요청 실패');
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: "검색 완료",
+        description: `총 ${data.totalFound}개 중 ${data.validResults}개의 실제 소비자 의견을 찾았습니다.`,
+      });
+
+      console.log('Search results:', data);
     } catch (error) {
+      console.error('Search error:', error);
       toast({
         title: "검색 실패",
         description: "검색 중 오류가 발생했습니다.",
