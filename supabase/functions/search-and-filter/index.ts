@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { keyword } = await req.json();
+    const { keyword, searchPeriod = 'm3' } = await req.json();
     
     if (!keyword) {
       return new Response(
@@ -31,6 +31,8 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`Search parameters - keyword: ${keyword}, period: ${searchPeriod}`);
 
     // Get user from JWT token
     const authHeader = req.headers.get('Authorization');
@@ -74,10 +76,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 1: Call Google Search Engine API
-    const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${searchEngineId}&q=${encodeURIComponent(keyword)}&num=10&gl=kr&hl=ko`;
+    // Step 1: Call Google Search Engine API with dateRestrict
+    const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${searchEngineId}&q=${encodeURIComponent(keyword)}&num=10&gl=kr&hl=ko&dateRestrict=${searchPeriod}`;
     
-    console.log('Calling Google Search API...');
+    console.log('Calling Google Search API with dateRestrict:', searchPeriod);
     const searchResponse = await fetch(searchUrl);
     
     if (!searchResponse.ok) {
@@ -193,7 +195,8 @@ JSON 형식으로만 답변하세요:
         snippet: result.snippet,
         source_domain: result.source_domain,
         status: 'pending',
-        user_id: user.id
+        user_id: user.id,
+        search_period: searchPeriod
       })
     );
 

@@ -105,9 +105,11 @@ export type Database = {
       }
       search_results: {
         Row: {
+          article_published_at: string | null
           created_at: string | null
           id: string
           keyword: string
+          search_period: string | null
           snippet: string | null
           source_domain: string | null
           status: Database["public"]["Enums"]["search_status"] | null
@@ -117,9 +119,11 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          article_published_at?: string | null
           created_at?: string | null
           id?: string
           keyword: string
+          search_period?: string | null
           snippet?: string | null
           source_domain?: string | null
           status?: Database["public"]["Enums"]["search_status"] | null
@@ -129,9 +133,11 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          article_published_at?: string | null
           created_at?: string | null
           id?: string
           keyword?: string
+          search_period?: string | null
           snippet?: string | null
           source_domain?: string | null
           status?: Database["public"]["Enums"]["search_status"] | null
