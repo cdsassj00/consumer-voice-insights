@@ -8,88 +8,153 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Modern gradient background */
+    --background: 240 20% 99%;
+    --foreground: 240 10% 10%;
 
+    /* Elevated cards with subtle tint */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 240 10% 10%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Vibrant primary gradient */
+    --primary: 250 80% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 250 80% 55%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Soft secondary */
+    --secondary: 240 15% 96%;
+    --secondary-foreground: 240 10% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted with warmth */
+    --muted: 240 15% 97%;
+    --muted-foreground: 240 8% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent gradient */
+    --accent: 260 70% 96%;
+    --accent-foreground: 250 80% 50%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Modern destructive */
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Subtle borders */
+    --border: 240 15% 92%;
+    --input: 240 15% 94%;
+    --ring: 250 80% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* FlareLane-inspired sidebar colors */
-    --sidebar-background: 210 37% 16%; /* #1a2738 navy */
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%; /* blue accent */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 37% 22%; /* lighter navy for hover */
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 210 37% 20%;
-    --sidebar-ring: 217 91% 60%;
+    /* Gradient colors */
+    --gradient-start: 250 80% 60%;
+    --gradient-end: 280 70% 65%;
     
-    /* Primary action colors - FlareLane blue */
-    --primary-blue: 217 91% 60%; /* #3b82f6 */
-    --accent-blue: 217 91% 70%;
+    /* Glassmorphism */
+    --glass-background: 0 0% 100% / 0.8;
+    --glass-border: 240 20% 90%;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.15);
+    
+    /* Modern sidebar */
+    --sidebar-background: 250 50% 15%;
+    --sidebar-foreground: 240 20% 98%;
+    --sidebar-primary: 260 80% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 250 40% 20%;
+    --sidebar-accent-foreground: 240 20% 98%;
+    --sidebar-border: 250 40% 18%;
+    --sidebar-ring: 260 80% 65%;
+    
+    /* Enhanced primary colors */
+    --primary-blue: 220 90% 56%;
+    --accent-blue: 220 90% 66%;
+    
+    /* Success & Info */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    --info: 200 90% 50%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark gradient background */
+    --background: 240 15% 8%;
+    --foreground: 240 10% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    /* Elevated dark cards */
+    --card: 240 15% 12%;
+    --card-foreground: 240 10% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 15% 12%;
+    --popover-foreground: 240 10% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Vibrant primary in dark */
+    --primary: 260 80% 65%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 260 80% 60%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Dark secondary */
+    --secondary: 240 15% 18%;
+    --secondary-foreground: 240 10% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Dark muted */
+    --muted: 240 15% 16%;
+    --muted-foreground: 240 8% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Dark accent */
+    --accent: 240 15% 18%;
+    --accent-foreground: 260 70% 70%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Dark destructive */
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    /* Dark mode - keep FlareLane navy style */
-    --sidebar-background: 210 37% 14%; /* slightly darker navy */
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    /* Dark borders */
+    --border: 240 15% 20%;
+    --input: 240 15% 18%;
+    --ring: 260 80% 65%;
+    
+    /* Dark gradient */
+    --gradient-start: 260 80% 65%;
+    --gradient-end: 280 70% 70%;
+    
+    /* Dark glassmorphism */
+    --glass-background: 240 15% 12% / 0.8;
+    --glass-border: 240 15% 25%;
+    
+    /* Dark shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+    --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.7);
+    
+    /* Dark sidebar */
+    --sidebar-background: 250 30% 10%;
+    --sidebar-foreground: 240 20% 95%;
+    --sidebar-primary: 260 80% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 37% 20%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 210 37% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 250 25% 15%;
+    --sidebar-accent-foreground: 240 20% 95%;
+    --sidebar-border: 250 25% 13%;
+    --sidebar-ring: 260 80% 65%;
+    
+    /* Dark primary colors */
+    --primary-blue: 220 90% 60%;
+    --accent-blue: 220 90% 70%;
+    
+    /* Dark success & info */
+    --success: 142 70% 50%;
+    --success-foreground: 0 0% 100%;
+    --info: 200 90% 55%;
+    --info-foreground: 0 0% 100%;
   }
 }
 
@@ -99,35 +164,72 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    min-height: 100vh;
+  }
+  
+  /* Smooth transitions */
+  * {
+    @apply transition-colors duration-200;
   }
 }
 
 @layer components {
-  /* Enhanced toast styling for better visibility */
+  /* Glassmorphism effect */
+  .glass {
+    background: hsl(var(--glass-background));
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Gradient background */
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+  }
+  
+  /* Enhanced shadows */
+  .shadow-elegant {
+    box-shadow: var(--shadow-lg);
+  }
+  
+  /* Smooth hover scale */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Enhanced toast styling */
   .toast {
-    @apply shadow-xl border-2;
+    @apply shadow-elegant border backdrop-blur-sm;
+    background: hsl(var(--glass-background));
   }
   
   .toast[data-type="foreground"] {
-    @apply bg-primary-blue/10 border-primary-blue/30 text-foreground;
+    @apply bg-primary/10 border-primary/30 text-foreground;
   }
   
   .toast[data-type="success"] {
-    @apply bg-green-50 border-green-500/30 text-green-900;
+    @apply bg-success/10 border-success/30;
+    color: hsl(var(--success));
   }
   
   .toast[data-type="error"],
   .toast[data-type="destructive"] {
-    @apply bg-red-50 border-red-500/30 text-red-900;
-  }
-
-  .dark .toast[data-type="success"] {
-    @apply bg-green-950 border-green-500/30 text-green-100;
-  }
-  
-  .dark .toast[data-type="error"],
-  .dark .toast[data-type="destructive"] {
-    @apply bg-red-950 border-red-500/30 text-red-100;
+    @apply bg-destructive/10 border-destructive/30;
+    color: hsl(var(--destructive));
   }
 }
