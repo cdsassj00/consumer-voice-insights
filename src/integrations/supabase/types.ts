@@ -61,6 +61,36 @@ export type Database = {
           },
         ]
       }
+      keywords: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          keyword: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          keyword: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          keyword?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_results: {
         Row: {
           created_at: string | null

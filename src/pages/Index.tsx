@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, BarChart3, LogOut, RefreshCw } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { Search, Loader2, BarChart3, LogOut, RefreshCw, Settings } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { SearchResultsList } from "@/components/SearchResultsList";
+import { KeywordManager } from "@/components/KeywordManager";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SearchResultData {
   totalFound: number;
@@ -17,6 +19,7 @@ interface SearchResultData {
 
 interface SearchResult {
   id: string;
+  keyword: string;
   url: string;
   title: string;
   snippet: string;
@@ -24,8 +27,18 @@ interface SearchResult {
   status: 'pending' | 'crawling' | 'analyzed' | 'failed';
 }
 
+interface Keyword {
+  id: string;
+  category: string;
+  keyword: string;
+  is_active: boolean;
+}
+
 const Index = () => {
   const [keyword, setKeyword] = useState("");
+  const [selectedKeywordId, setSelectedKeywordId] = useState<string>("");
+  const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [showKeywordManager, setShowKeywordManager] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
@@ -51,11 +64,28 @@ const Index = () => {
       setSession(session);
       if (!session) {
         navigate("/auth");
+      } else {
+        fetchKeywords();
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchKeywords = async () => {
+    const { data, error } = await supabase
+      .from('keywords')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching keywords:', error);
+      return;
+    }
+
+    setKeywords(data || []);
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -85,10 +115,14 @@ const Index = () => {
   };
 
   const handleSearch = async () => {
-    if (!keyword.trim()) {
+    const searchKeyword = selectedKeywordId 
+      ? keywords.find(k => k.id === selectedKeywordId)?.keyword 
+      : keyword.trim();
+
+    if (!searchKeyword) {
       toast({
-        title: "키워드를 입력하세요",
-        description: "검색할 키워드를 입력해주세요.",
+        title: "키워드를 선택하거나 입력하세요",
+        description: "검색할 키워드를 선택하거나 입력해주세요.",
         variant: "destructive",
       });
       return;
@@ -99,7 +133,7 @@ const Index = () => {
     try {
       toast({
         title: "검색 시작",
-        description: `"${keyword}" 키워드로 한국 소비자 의견을 검색합니다...`,
+        description: `"${searchKeyword}" 키워드로 한국 소비자 의견을 검색합니다...`,
       });
 
       const response = await fetch(
@@ -110,7 +144,7 @@ const Index = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token}`,
           },
-          body: JSON.stringify({ keyword }),
+          body: JSON.stringify({ keyword: searchKeyword }),
         }
       );
 
@@ -121,7 +155,7 @@ const Index = () => {
       const data = await response.json();
       
       setSearchResult(data);
-      setCurrentKeyword(keyword);
+      setCurrentKeyword(searchKeyword);
       
       toast({
         title: "검색 완료",
@@ -131,7 +165,7 @@ const Index = () => {
       console.log('Search results:', data);
 
       // Fetch the filtered results
-      await fetchSearchResults(keyword);
+      await fetchSearchResults(searchKeyword);
     } catch (error) {
       console.error('Search error:', error);
       toast({
@@ -265,19 +299,49 @@ const Index = () => {
           {/* Search Card */}
           <Card>
             <CardHeader>
-              <CardTitle>키워드 검색</CardTitle>
-              <CardDescription>
-                검색하고 싶은 브랜드, 제품, 서비스명을 입력하세요
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <CardTitle>키워드 검색</CardTitle>
+                  <CardDescription>
+                    등록된 키워드를 선택하거나 직접 입력하세요
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowKeywordManager(!showKeywordManager)}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  키워드 관리
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
+                {keywords.length > 0 && (
+                  <Select value={selectedKeywordId} onValueChange={setSelectedKeywordId}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="등록된 키워드 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {keywords.map((kw) => (
+                        <SelectItem key={kw.id} value={kw.id}>
+                          [{kw.category === 'brand' ? '브랜드' : kw.category === 'product' ? '제품' : kw.category === 'service' ? '서비스' : '기타'}] {kw.keyword}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <Input
-                  placeholder="예: 삼성 갤럭시, 스타벅스, 현대 자동차..."
+                  placeholder="또는 직접 입력 (예: 삼성 갤럭시)"
                   value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
+                  onChange={(e) => {
+                    setKeyword(e.target.value);
+                    setSelectedKeywordId("");
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="flex-1"
+                  disabled={!!selectedKeywordId}
                 />
                 <Button 
                   onClick={handleSearch}
@@ -295,6 +359,11 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Keyword Manager */}
+          {showKeywordManager && (
+            <KeywordManager />
+          )}
 
           {/* Info Cards */}
           <div className="grid md:grid-cols-3 gap-4">

@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
+import { ExternalLink, Sparkles, CheckCircle2, Eye } from "lucide-react";
+import { ArticleModal } from "./ArticleModal";
 
 interface SearchResult {
   id: string;
+  keyword: string;
   url: string;
   title: string;
   snippet: string;
@@ -22,6 +24,15 @@ interface SearchResultsListProps {
 
 export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchResultsListProps) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalUrl, setModalUrl] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
+
+  const openModal = (url: string, title: string) => {
+    setModalUrl(url);
+    setModalTitle(title);
+    setModalOpen(true);
+  };
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -61,7 +72,8 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
   };
 
   return (
-    <div className="space-y-4">
+    <>
+      <div className="space-y-4">
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -108,40 +120,53 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
                 }`}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <Checkbox
-                      checked={selectedIds.has(result.id)}
-                      onCheckedChange={() => toggleSelection(result.id)}
-                      disabled={result.status === 'analyzed'}
-                      className="mt-1"
-                    />
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-foreground leading-tight flex-1">
-                          {result.title}
-                        </h3>
-                        {getStatusBadge(result.status)}
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {result.snippet}
-                      </p>
-                      
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="secondary" className="font-normal">
-                          {result.source_domain}
-                        </Badge>
-                        <a
-                          href={result.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline inline-flex items-center gap-1"
-                        >
-                          원문 보기 <ExternalLink className="w-3 h-3" />
-                        </a>
+                    <div className="flex items-start gap-4">
+                      <Checkbox
+                        checked={selectedIds.has(result.id)}
+                        onCheckedChange={() => toggleSelection(result.id)}
+                        disabled={result.status === 'analyzed'}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-foreground leading-tight flex-1">
+                            {result.title}
+                          </h3>
+                          {getStatusBadge(result.status)}
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {result.snippet}
+                        </p>
+                        
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                          <Badge variant="outline" className="font-medium">
+                            키워드: {result.keyword}
+                          </Badge>
+                          <Badge variant="secondary" className="font-normal">
+                            {result.source_domain}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-primary hover:underline"
+                            onClick={() => openModal(result.url, result.title)}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            원문 보기
+                          </Button>
+                          <a
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            새 탭에서 열기 <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
                       </div>
                     </div>
-                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -169,5 +194,13 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
         </CardContent>
       </Card>
     </div>
+
+    <ArticleModal
+      isOpen={modalOpen}
+      onClose={() => setModalOpen(false)}
+      url={modalUrl}
+      title={modalTitle}
+    />
+  </>
   );
 };
