@@ -37,6 +37,34 @@ serve(async (req) => {
     {"topic": "주제2", "count": 언급횟수},
     {"topic": "주제3", "count": 언급횟수}
   ],
+  "categoryAnalysis": {
+    "product": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
+    "service": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
+    "store": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
+    "price": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
+    "quality": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]}
+  },
+  "keyOpinions": [
+    {"opinion": "주요 의견 1", "sentiment": "긍정|부정", "frequency": 언급횟수},
+    {"opinion": "주요 의견 2", "sentiment": "긍정|부정", "frequency": 언급횟수},
+    {"opinion": "주요 의견 3", "sentiment": "긍정|부정", "frequency": 언급횟수}
+  ],
+  "networkGraph": {
+    "nodes": [
+      {"id": "키워드1", "value": 중요도(1-10), "category": "카테고리"},
+      {"id": "키워드2", "value": 중요도(1-10), "category": "카테고리"}
+    ],
+    "links": [
+      {"source": "키워드1", "target": "키워드2", "value": 연관강도(1-5)}
+    ]
+  },
+  "quantitativeMetrics": {
+    "totalMentions": 전체언급수,
+    "avgSentimentScore": 평균감성점수(-1.0~1.0),
+    "engagementRate": 참여율(0-100),
+    "trendDirection": "상승|하락|안정",
+    "growthRate": 증가율(%)
+  },
   "summary": "전체적인 소비자 의견 요약 (2-3문장)"
 }`;
 
