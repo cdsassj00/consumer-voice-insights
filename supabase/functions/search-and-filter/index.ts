@@ -10,6 +10,15 @@ interface GoogleSearchResult {
   title: string;
   snippet: string;
   displayLink: string;
+  pagemap?: {
+    metatags?: Array<{
+      'article:published_time'?: string;
+      'og:article:published_time'?: string;
+      'datePublished'?: string;
+      'dc.date.issued'?: string;
+      'sailthru.date'?: string;
+    }>;
+  };
 }
 
 interface FilterDecision {
@@ -103,6 +112,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Helper function to extract published date from Google Search result
+    const extractPublishedDate = (item: GoogleSearchResult): string | null => {
+      if (!item.pagemap?.metatags?.[0]) return null;
+      
+      const metatag = item.pagemap.metatags[0];
+      const dateString = 
+        metatag['article:published_time'] ||
+        metatag['og:article:published_time'] ||
+        metatag['datePublished'] ||
+        metatag['dc.date.issued'] ||
+        metatag['sailthru.date'];
+      
+      if (dateString) {
+        try {
+          const date = new Date(dateString);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString();
+          }
+        } catch (e) {
+          console.error('Error parsing date:', dateString, e);
+        }
+      }
+      
+      return null;
+    };
+
     // Step 2: Filter results using OpenAI
     const validResults = [];
     
@@ -165,12 +200,14 @@ JSON 형식으로만 답변하세요:
         console.log(`Result for "${item.title}": ${decision.isValid ? 'VALID' : 'INVALID'} - ${decision.reason}`);
 
         if (decision.isValid) {
+          const publishedDate = extractPublishedDate(item);
           validResults.push({
             url: item.link,
             title: item.title,
             snippet: item.snippet,
             source_domain: item.displayLink,
-            reason: decision.reason
+            reason: decision.reason,
+            article_published_at: publishedDate
           });
         }
       } catch (error) {
@@ -196,7 +233,8 @@ JSON 형식으로만 답변하세요:
         source_domain: result.source_domain,
         status: 'pending',
         user_id: user.id,
-        search_period: searchPeriod
+        search_period: searchPeriod,
+        article_published_at: result.article_published_at || null
       })
     );
 

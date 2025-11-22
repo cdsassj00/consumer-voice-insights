@@ -34,6 +34,7 @@ interface SearchResult {
   source_domain: string;
   status: 'pending' | 'crawling' | 'analyzed' | 'failed';
   created_at: string;
+  article_published_at: string | null;
 }
 
 interface Keyword {
@@ -184,9 +185,11 @@ const Index = () => {
     
     setIsAnalyzingFirstStage(true);
     try {
-      // 날짜별 게시글 수 집계
+      // 원본 게재일자 기준으로 날짜별 게시글 수 집계
       const dateCounts = results.reduce((acc, result) => {
-        const date = new Date(result.created_at).toLocaleDateString('ko-KR', { 
+        // article_published_at이 있으면 사용, 없으면 created_at 사용
+        const dateSource = result.article_published_at || result.created_at;
+        const date = new Date(dateSource).toLocaleDateString('ko-KR', { 
           month: 'short', 
           day: 'numeric' 
         });
@@ -201,7 +204,7 @@ const Index = () => {
           const dateB = new Date(b.date);
           return dateA.getTime() - dateB.getTime();
         })
-        .slice(-14); // 최근 14일만 표시
+        .slice(-30); // 최근 30일만 표시
 
       const { data, error } = await supabase.functions.invoke('analyze-first-stage', {
         body: { 
