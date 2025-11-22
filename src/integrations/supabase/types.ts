@@ -63,29 +63,41 @@ export type Database = {
       }
       keywords: {
         Row: {
-          category: string
+          category: string | null
           created_at: string | null
           id: string
           is_active: boolean | null
+          is_favorite: boolean | null
           keyword: string
+          last_searched_at: string | null
+          search_count: number | null
+          source: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          category: string
+          category?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_favorite?: boolean | null
           keyword: string
+          last_searched_at?: string | null
+          search_count?: number | null
+          source?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          category?: string
+          category?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_favorite?: boolean | null
           keyword?: string
+          last_searched_at?: string | null
+          search_count?: number | null
+          source?: string | null
           updated_at?: string | null
           user_id?: string
         }
