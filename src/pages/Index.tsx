@@ -754,6 +754,7 @@ const Index = () => {
               <FirstStageAnalysis 
                 analysis={firstStageAnalysis} 
                 trendData={firstStageAnalysis.trendData || []}
+                searchResults={searchResults}
               />
             </div>
           )}

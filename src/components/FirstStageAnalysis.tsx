@@ -1,7 +1,20 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, CartesianGrid, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { TrendingUp, MessageSquare, Hash, Calendar, Network, ShoppingBag, Star, TrendingDown, Activity } from "lucide-react";
+import { ArticleModal } from "./ArticleModal";
+
+interface SearchResult {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string | null;
+  keyword: string;
+  article_published_at: string | null;
+  status: string | null;
+}
 
 interface FirstStageAnalysisProps {
   analysis: {
@@ -34,9 +47,28 @@ interface FirstStageAnalysisProps {
     summary: string;
   };
   trendData: Array<{ date: string; count: number }>;
+  searchResults: SearchResult[];
 }
 
-export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisProps) {
+export function FirstStageAnalysis({ analysis, trendData, searchResults }: FirstStageAnalysisProps) {
+  const [dateRange, setDateRange] = useState<[number, number]>([0, trendData.length - 1]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedArticles, setSelectedArticles] = useState<SearchResult[]>([]);
+  const [modalTitle, setModalTitle] = useState("");
+
+  // 슬라이더로 필터링된 트렌드 데이터
+  const filteredTrendData = useMemo(() => {
+    return trendData.slice(dateRange[0], dateRange[1] + 1);
+  }, [trendData, dateRange]);
+
+  // 차트 클릭 핸들러
+  const handleChartClick = (filterFn: (result: SearchResult) => boolean, title: string) => {
+    const filtered = searchResults.filter(filterFn);
+    setSelectedArticles(filtered);
+    setModalTitle(title);
+    setModalOpen(true);
+  };
+
   const sentimentData = [
     { name: "긍정", value: analysis.sentiment.positive, color: "#10b981" },
     { name: "중립", value: analysis.sentiment.neutral, color: "#6b7280" },
@@ -172,6 +204,14 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
                   outerRadius={65}
                   fill="#8884d8"
                   dataKey="value"
+                  onClick={(data) => {
+                    const sentimentMap: { [key: string]: string } = { '긍정': 'positive', '중립': 'neutral', '부정': 'negative' };
+                    handleChartClick(
+                      () => true, // 감성 분석은 전체 게시글 표시
+                      `${data.name} 감성 게시글`
+                    );
+                  }}
+                  className="cursor-pointer"
                 >
                   {sentimentData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -202,7 +242,19 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
                 />
                 <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                <Bar 
+                  dataKey="count" 
+                  fill="hsl(var(--primary))" 
+                  radius={[8, 8, 0, 0]}
+                  onClick={(data) => {
+                    handleChartClick(
+                      (result) => result.snippet?.toLowerCase().includes(data.topic.toLowerCase()) || 
+                                  result.title.toLowerCase().includes(data.topic.toLowerCase()),
+                      `${data.topic} 관련 게시글`
+                    );
+                  }}
+                  className="cursor-pointer"
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -385,35 +437,54 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
           <CardDescription>원본 게재일 기준 날짜별 게시글 현황</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {trendData[dateRange[0]]?.date}
+              </span>
+              <Slider
+                value={dateRange}
+                onValueChange={(value) => setDateRange(value as [number, number])}
+                max={trendData.length - 1}
+                min={0}
+                step={1}
+                minStepsBetweenThumbs={1}
+                className="flex-1"
               />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="count" 
-                stroke="hsl(var(--primary))" 
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--primary))' }}
-                name="게시글 수"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {trendData[dateRange[1]]?.date}
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={filteredTrendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))' }}
+                  name="게시글 수"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
@@ -449,6 +520,14 @@ export function FirstStageAnalysis({ analysis, trendData }: FirstStageAnalysisPr
           <p className="text-foreground leading-relaxed">{analysis.summary}</p>
         </CardContent>
       </Card>
+
+      {/* 모달 */}
+      <ArticleModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        articles={selectedArticles}
+        title={modalTitle}
+      />
     </div>
   );
 }
