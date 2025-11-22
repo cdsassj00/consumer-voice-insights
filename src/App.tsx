@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
 import Auth from "./pages/Auth";
@@ -27,10 +29,19 @@ const App = () => (
                 <div className="flex min-h-screen w-full">
                   <AppSidebar />
                   <div className="flex-1 flex flex-col">
-                    {/* Header with sidebar trigger */}
+                    {/* Header with sidebar trigger and logout */}
                     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4">
                       <SidebarTrigger />
                       <div className="flex-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                        }}
+                      >
+                        <span className="text-sm">로그아웃</span>
+                      </Button>
                     </header>
                     {/* Main content */}
                     <main className="flex-1">

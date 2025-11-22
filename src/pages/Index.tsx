@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, BarChart3, LogOut, RefreshCw, Settings } from "lucide-react";
+import { Search, Loader2, RefreshCw, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { SearchResultsList } from "@/components/SearchResultsList";
@@ -89,14 +89,6 @@ const Index = () => {
     }
 
     setKeywords(data || []);
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "로그아웃 완료",
-      description: "로그아웃되었습니다.",
-    });
   };
 
   const fetchSearchResults = async (keyword: string) => {
@@ -310,24 +302,9 @@ const Index = () => {
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1" />
-              <h1 className="text-4xl font-bold text-foreground">
-                한국 소비자 인사이트 플랫폼
-              </h1>
-              <div className="flex-1 flex justify-end gap-2">
-                <Link to="/results">
-                  <Button variant="outline" size="sm">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    분석 결과 보기
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  로그아웃
-                </Button>
-              </div>
-            </div>
+            <h1 className="text-4xl font-bold text-foreground">
+              한국 소비자 인사이트 플랫폼
+            </h1>
             <p className="text-lg text-muted-foreground">
               실제 소비자들의 솔직한 리뷰와 니즈를 분석합니다
             </p>
