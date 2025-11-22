@@ -59,7 +59,6 @@ const Index = () => {
   const [isAnalyzingFirstStage, setIsAnalyzingFirstStage] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [currentKeyword, setCurrentKeyword] = useState("");
@@ -478,49 +477,6 @@ const Index = () => {
     }
   };
 
-  const handleReanalyzeMissingDates = async () => {
-    setIsReanalyzing(true);
-    
-    try {
-      toast({
-        title: "재분석 시작",
-        description: "원본 게재일이 누락된 데이터를 재분석합니다...",
-      });
-
-      const { data, error } = await supabase.functions.invoke('reanalyze-missing-dates', {
-        body: {}
-      });
-
-      if (error) {
-        console.error('Reanalysis error:', error);
-        throw error;
-      }
-
-      toast({
-        title: "재분석 완료",
-        description: `총 ${data.total}개 중 ${data.succeeded}개 재분석 완료, ${data.failed}개 실패`,
-      });
-
-      console.log('Reanalysis results:', data);
-
-      // Refresh search results
-      if (currentKeyword) {
-        await fetchSearchResults(currentKeyword);
-      } else {
-        await fetchRecentSearchResults();
-      }
-      
-    } catch (error) {
-      console.error('Reanalysis error:', error);
-      toast({
-        title: "재분석 실패",
-        description: error instanceof Error ? error.message : "재분석 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsReanalyzing(false);
-    }
-  };
 
   // Calculate progress for full analysis
   const analyzedCount = searchResults.filter(r => r.status === 'analyzed').length;
@@ -549,22 +505,7 @@ const Index = () => {
         </div>
       )}
 
-      {/* Fixed Progress Banner for Reanalysis */}
-      {isReanalyzing && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-b shadow-lg">
-          <div className="container mx-auto px-4 py-3">
-            <Alert className="border-primary/20 bg-primary/5">
-              <Sparkles className="h-5 w-5 animate-pulse text-primary" />
-              <AlertTitle className="text-primary">원본 게재일 재분석 진행 중</AlertTitle>
-              <AlertDescription className="text-sm mt-2">
-                article_published_at이 누락된 데이터를 찾아 원본 게재일을 추출하고 있습니다...
-              </AlertDescription>
-            </Alert>
-          </div>
-        </div>
-      )}
-
-      <div className={`container mx-auto px-4 ${(isProcessing && searchMode === 'full') || isReanalyzing ? 'pt-32' : 'pt-12'} pb-12`}>
+      <div className={`container mx-auto px-4 ${isProcessing && searchMode === 'full' ? 'pt-32' : 'pt-12'} pb-12`}>
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
@@ -588,24 +529,6 @@ const Index = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <HelpModal />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReanalyzeMissingDates}
-                    disabled={isReanalyzing}
-                  >
-                    {isReanalyzing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        재분석 중...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        날짜 재분석
-                      </>
-                    )}
-                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
