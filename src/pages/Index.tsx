@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, RefreshCw, Settings } from "lucide-react";
+import { Search, Loader2, RefreshCw, Settings, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { SearchResultsList } from "@/components/SearchResultsList";
@@ -333,18 +333,30 @@ const Index = () => {
             <CardContent className="space-y-4">
               <div className="flex gap-2">
                 {keywords.length > 0 && (
-                  <Select value={selectedKeywordId} onValueChange={setSelectedKeywordId}>
-                    <SelectTrigger className="w-64">
-                      <SelectValue placeholder="등록된 키워드 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {keywords.map((kw) => (
-                        <SelectItem key={kw.id} value={kw.id}>
-                          {kw.category && `[${kw.category === 'brand' ? '브랜드' : kw.category === 'product' ? '제품' : kw.category === 'service' ? '서비스' : '기타'}] `}{kw.keyword}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedKeywordId} onValueChange={setSelectedKeywordId}>
+                      <SelectTrigger className="w-64">
+                        <SelectValue placeholder="등록된 키워드 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {keywords.map((kw) => (
+                          <SelectItem key={kw.id} value={kw.id}>
+                            {kw.category && `[${kw.category === 'brand' ? '브랜드' : kw.category === 'product' ? '제품' : kw.category === 'service' ? '서비스' : '기타'}] `}{kw.keyword}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedKeywordId && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedKeywordId("")}
+                        className="h-10 w-10 shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 )}
                 <Input
                   placeholder="또는 직접 입력 (예: 삼성 갤럭시)"
