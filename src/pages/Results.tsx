@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut, Filter, X } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut, Filter, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { subDays, subMonths, startOfDay, endOfDay } from "date-fns";
 
 interface AnalysisResult {
   id: string;
@@ -177,6 +178,30 @@ const Results = () => {
     setDateRange(undefined);
   };
 
+  // Quick date range selection helpers
+  const setQuickDateRange = (range: 'today' | '7days' | '1month' | '3months') => {
+    const now = new Date();
+    const end = endOfDay(now);
+    let start: Date;
+
+    switch (range) {
+      case 'today':
+        start = startOfDay(now);
+        break;
+      case '7days':
+        start = startOfDay(subDays(now, 7));
+        break;
+      case '1month':
+        start = startOfDay(subMonths(now, 1));
+        break;
+      case '3months':
+        start = startOfDay(subMonths(now, 3));
+        break;
+    }
+
+    setDateRange({ from: start, to: end });
+  };
+
   // Calculate sentiment distribution
   const sentimentData = Object.entries(
     results.reduce((acc, r) => {
@@ -268,34 +293,79 @@ const Results = () => {
             {/* Date Range Filter */}
             <Card className="bg-muted/30">
               <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">기간별 필터링:</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-1">
-                    <DateRangePicker
-                      dateRange={dateRange}
-                      onDateRangeChange={setDateRange}
-                      className="flex-1 md:max-w-md"
-                    />
-                    {dateRange && (
+                <div className="space-y-4">
+                  {/* Quick Selection Buttons */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-sm font-medium">빠른 선택:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={clearDateFilter}
-                        className="shrink-0"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuickDateRange('today')}
+                        className="text-xs"
                       >
-                        <X className="h-4 w-4" />
+                        오늘
                       </Button>
-                    )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuickDateRange('7days')}
+                        className="text-xs"
+                      >
+                        최근 7일
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuickDateRange('1month')}
+                        className="text-xs"
+                      >
+                        최근 1개월
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuickDateRange('3months')}
+                        className="text-xs"
+                      >
+                        최근 3개월
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {dateRange?.from || dateRange?.to ? (
-                      <span>필터링된 결과: <strong className="text-foreground">{results.length}</strong>개 / 전체: {allResults.length}개</span>
-                    ) : (
-                      <span>전체 결과: <strong className="text-foreground">{results.length}</strong>개</span>
-                    )}
+
+                  {/* Custom Date Range Picker */}
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-sm font-medium">사용자 지정:</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <DateRangePicker
+                        dateRange={dateRange}
+                        onDateRangeChange={setDateRange}
+                        className="flex-1 md:max-w-md"
+                      />
+                      {dateRange && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={clearDateFilter}
+                          className="shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {dateRange?.from || dateRange?.to ? (
+                        <span>필터링된 결과: <strong className="text-foreground">{results.length}</strong>개 / 전체: {allResults.length}개</span>
+                      ) : (
+                        <span>전체 결과: <strong className="text-foreground">{results.length}</strong>개</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
