@@ -43,6 +43,7 @@ const Index = () => {
   const [selectedKeywordId, setSelectedKeywordId] = useState<string>("");
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [showKeywordManager, setShowKeywordManager] = useState(false);
+  const [searchPeriod, setSearchPeriod] = useState("m3"); // 검색 기간 (기본값: 최근 3개월)
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
@@ -205,7 +206,10 @@ const Index = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token}`,
           },
-          body: JSON.stringify({ keyword: searchKeyword }),
+          body: JSON.stringify({ 
+            keyword: searchKeyword,
+            searchPeriod: searchPeriod 
+          }),
         }
       );
 
@@ -363,6 +367,26 @@ const Index = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* 검색 기간 선택 */}
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium text-foreground">검색 기간:</label>
+                <Select value={searchPeriod} onValueChange={setSearchPeriod}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="d7">최근 7일</SelectItem>
+                    <SelectItem value="m1">최근 1개월</SelectItem>
+                    <SelectItem value="m3">최근 3개월</SelectItem>
+                    <SelectItem value="m6">최근 6개월</SelectItem>
+                    <SelectItem value="y1">최근 1년</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">
+                  게시글 발행일 기준
+                </span>
+              </div>
+
               <div className="flex gap-2">
                 {keywords.length > 0 && (
                   <div className="flex items-center gap-2">
