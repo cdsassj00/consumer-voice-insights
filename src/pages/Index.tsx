@@ -4,12 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, RefreshCw, Settings, X } from "lucide-react";
+import { Search, Loader2, Settings, X, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { SearchResultsList } from "@/components/SearchResultsList";
 import { KeywordManager } from "@/components/KeywordManager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { HelpModal } from "@/components/HelpModal";
 
 interface SearchResultData {
   totalFound: number;
@@ -44,6 +50,7 @@ const Index = () => {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [showKeywordManager, setShowKeywordManager] = useState(false);
   const [searchPeriod, setSearchPeriod] = useState("m3"); // 검색 기간 (기본값: 최근 3개월)
+  const [searchMode, setSearchMode] = useState<'quick' | 'full'>('quick'); // 검색 모드
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResultData | null>(null);
@@ -76,6 +83,37 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Realtime subscription for search results status updates
+  useEffect(() => {
+    if (!currentKeyword || !session?.user) return;
+    
+    const channel = supabase
+      .channel('search-results-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'search_results',
+          filter: `keyword=eq.${currentKeyword}`,
+        },
+        (payload) => {
+          console.log('Search result status updated:', payload);
+          setSearchResults(prev => 
+            prev.map(r => r.id === payload.new.id 
+              ? { ...r, status: payload.new.status as SearchResult['status'] } 
+              : r
+            )
+          );
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentKeyword, session?.user]);
 
   const fetchKeywords = async () => {
     const { data, error } = await supabase
@@ -231,6 +269,20 @@ const Index = () => {
 
       // Fetch the filtered results
       await fetchSearchResults(searchKeyword);
+      
+      // Auto-trigger full analysis if in 'full' mode
+      if (searchMode === 'full') {
+        toast({
+          title: "AI 전체 분석 시작",
+          description: "검색 결과를 표시하는 동안 백그라운드에서 상세 분석이 진행됩니다...",
+          duration: 5000,
+        });
+        
+        // Start batch processing after a short delay
+        setTimeout(() => {
+          handleBatchProcess();
+        }, 1000);
+      }
     } catch (error) {
       console.error('Search error:', error);
       toast({
@@ -257,8 +309,8 @@ const Index = () => {
     
     try {
       toast({
-        title: "2차 분석 시작",
-        description: "Firecrawl로 전문을 수집하고 AI가 상세 분석을 진행합니다...",
+        title: "상세 분석 시작",
+        description: "게시글 전문을 수집하고 AI가 심층 분석을 진행합니다...",
       });
 
       // Process selected items or all items for the keyword
@@ -286,8 +338,8 @@ const Index = () => {
         }
 
         toast({
-          title: "2차 분석 완료",
-          description: `${selectedIds.length}개 항목 분석이 완료되었습니다.`,
+          title: "상세 분석 완료",
+          description: `${selectedIds.length}개 게시글 분석이 완료되었습니다.`,
         });
       } else {
         // Process all items for the keyword (original batch process)
@@ -310,7 +362,7 @@ const Index = () => {
         const data = await response.json();
         
         toast({
-          title: "2차 분석 완료",
+          title: "상세 분석 완료",
           description: `${data.total}개 중 ${data.succeeded}개 분석 완료, ${data.failed}개 실패`,
         });
 
@@ -324,7 +376,7 @@ const Index = () => {
       console.error('Batch processing error:', error);
       toast({
         title: "분석 실패",
-        description: "2차 분석 중 오류가 발생했습니다.",
+        description: "상세 분석 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     } finally {
@@ -332,9 +384,34 @@ const Index = () => {
     }
   };
 
+  // Calculate progress for full analysis
+  const analyzedCount = searchResults.filter(r => r.status === 'analyzed').length;
+  const progressPercentage = searchResults.length > 0 
+    ? (analyzedCount / searchResults.length) * 100 
+    : 0;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-12">
+      {/* Fixed Progress Banner for Full Analysis */}
+      {isProcessing && searchMode === 'full' && searchResults.length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-b shadow-lg">
+          <div className="container mx-auto px-4 py-3">
+            <Alert className="border-primary-blue/20 bg-primary-blue/5">
+              <Loader2 className="h-5 w-5 animate-spin text-primary-blue" />
+              <AlertTitle className="text-primary-blue">AI 상세 분석 진행 중</AlertTitle>
+              <AlertDescription className="flex items-center gap-4 mt-2">
+                <span className="text-sm">
+                  {analyzedCount}/{searchResults.length} 게시글 완료
+                </span>
+                <Progress value={progressPercentage} className="flex-1 h-2" />
+                <span className="text-sm font-medium">{Math.round(progressPercentage)}%</span>
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      )}
+
+      <div className={`container mx-auto px-4 ${isProcessing && searchMode === 'full' ? 'pt-32' : 'pt-12'} pb-12`}>
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
@@ -356,17 +433,47 @@ const Index = () => {
                     등록된 키워드를 선택하거나 직접 입력하세요
                   </CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowKeywordManager(!showKeywordManager)}
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  키워드 관리
-                </Button>
+                <div className="flex items-center gap-2">
+                  <HelpModal />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowKeywordManager(!showKeywordManager)}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    키워드 관리
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* 검색 모드 선택 */}
+              <div className="p-4 bg-muted/30 rounded-lg border">
+                <label className="text-sm font-medium text-foreground mb-3 block">검색 모드 선택:</label>
+                <RadioGroup value={searchMode} onValueChange={(value) => setSearchMode(value as 'quick' | 'full')} className="space-y-3">
+                  <div className="flex items-center space-x-3 p-3 rounded-md border bg-background hover:bg-accent/50 transition-colors cursor-pointer">
+                    <RadioGroupItem value="quick" id="quick" />
+                    <Label htmlFor="quick" className="flex-1 cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">빠른 검색</span>
+                        <Badge variant="outline" className="text-xs">무료</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">검색 결과만 확인하고 원하는 게시글을 선택하여 분석</p>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 rounded-md border bg-background hover:bg-accent/50 transition-colors cursor-pointer">
+                    <RadioGroupItem value="full" id="full" />
+                    <Label htmlFor="full" className="flex-1 cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">전체 분석</span>
+                        <Badge className="text-xs bg-primary-blue">프리미엄</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">검색 결과 + 자동으로 모든 게시글 AI 상세 분석</p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
               {/* 검색 기간 선택 */}
               <div className="flex items-center gap-4">
                 <label className="text-sm font-medium text-foreground">검색 기간:</label>
@@ -474,36 +581,6 @@ const Index = () => {
           <KeywordManager userId={session.user.id} />
         )}
 
-          {/* Info Cards */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">1단계</CardTitle>
-                <CardDescription>
-                  Google Search로 한국 커뮤니티 사이트에서 관련 게시글 검색
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">2단계</CardTitle>
-                <CardDescription>
-                  AI 필터링으로 실제 소비자 리뷰만 선별 및 전문 크롤링
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">3단계</CardTitle>
-                <CardDescription>
-                  AI 분석 및 시각화로 인사이트 도출
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-
           {/* Search Results */}
           {searchResults.length > 0 && (
             <SearchResultsList
@@ -550,7 +627,7 @@ const Index = () => {
                   className="w-full"
                   size="lg"
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
+                  <Loader2 className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
                   {isProcessing ? '분석 진행 중...' : '결과 새로고침'}
                 </Button>
               </CardContent>

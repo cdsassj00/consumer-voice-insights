@@ -79,11 +79,11 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <CardTitle className="text-2xl flex items-center gap-2">
-                <Sparkles className="w-6 h-6 text-primary" />
-                1차 필터링 결과
+                <Sparkles className="w-6 h-6 text-primary-blue" />
+                AI 선별 결과
               </CardTitle>
               <CardDescription className="mt-2 text-base">
-                AI가 광고, 프로모션, 뉴스를 제외하고 <span className="font-semibold text-primary">실제 소비자 의견만</span> 선별했습니다
+                AI가 광고, 프로모션, 뉴스를 제외하고 <span className="font-semibold text-primary-blue">실제 소비자 의견만</span> 선별했습니다
               </CardDescription>
             </div>
           </div>
@@ -183,9 +183,9 @@ export const SearchResultsList = ({ results, onAnalyze, isProcessing }: SearchRe
       <Card className="bg-muted/30">
         <CardContent className="p-4">
           <div className="text-sm space-y-2">
-            <p className="font-semibold text-foreground">💡 2차 상세 분석이란?</p>
+            <p className="font-semibold text-foreground">💡 상세 분석이란?</p>
             <ul className="text-muted-foreground space-y-1 ml-4">
-              <li>• 게시글 전문을 수집하여 심층 분석</li>
+              <li>• 게시글 전문을 수집하여 AI 심층 분석</li>
               <li>• 감성 분석 (긍정/부정/중립)</li>
               <li>• 주요 토픽, 장단점, 추천도 추출</li>
               <li>• 시각화된 인사이트 리포트 제공</li>

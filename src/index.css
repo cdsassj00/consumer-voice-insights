@@ -102,3 +102,32 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Enhanced toast styling for better visibility */
+  .toast {
+    @apply shadow-xl border-2;
+  }
+  
+  .toast[data-type="foreground"] {
+    @apply bg-primary-blue/10 border-primary-blue/30 text-foreground;
+  }
+  
+  .toast[data-type="success"] {
+    @apply bg-green-50 border-green-500/30 text-green-900;
+  }
+  
+  .toast[data-type="error"],
+  .toast[data-type="destructive"] {
+    @apply bg-red-50 border-red-500/30 text-red-900;
+  }
+
+  .dark .toast[data-type="success"] {
+    @apply bg-green-950 border-green-500/30 text-green-100;
+  }
+  
+  .dark .toast[data-type="error"],
+  .dark .toast[data-type="destructive"] {
+    @apply bg-red-950 border-red-500/30 text-red-100;
+  }
+}
