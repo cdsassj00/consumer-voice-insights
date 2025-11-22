@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, ExternalLink, LogOut, Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Session } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
+import { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/DateRangePicker";
 
 interface AnalysisResult {
   id: string;
@@ -32,6 +34,8 @@ interface AnalysisResult {
     url: string;
     title: string;
     source_domain: string;
+    article_published_at: string | null;
+    created_at: string;
   };
 }
 
@@ -54,8 +58,10 @@ const Results = () => {
   const keyword = searchParams.get('keyword');
   
   const [results, setResults] = useState<AnalysisResult[]>([]);
+  const [allResults, setAllResults] = useState<AnalysisResult[]>([]); // 전체 결과 저장
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -87,6 +93,38 @@ const Results = () => {
     }
   }, [keyword, session]);
 
+  // Apply date range filter when dateRange changes
+  useEffect(() => {
+    if (!dateRange?.from && !dateRange?.to) {
+      // No filter - show all results
+      setResults(allResults);
+      return;
+    }
+
+    const filtered = allResults.filter((result) => {
+      const articleDate = result.search_results.article_published_at 
+        ? new Date(result.search_results.article_published_at)
+        : new Date(result.search_results.created_at);
+      
+      if (dateRange.from && dateRange.to) {
+        // Range filter
+        const fromDate = new Date(dateRange.from);
+        fromDate.setHours(0, 0, 0, 0);
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        return articleDate >= fromDate && articleDate <= toDate;
+      } else if (dateRange.from) {
+        // Only from date
+        const fromDate = new Date(dateRange.from);
+        fromDate.setHours(0, 0, 0, 0);
+        return articleDate >= fromDate;
+      }
+      return true;
+    });
+
+    setResults(filtered);
+  }, [dateRange, allResults]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast({
@@ -106,7 +144,9 @@ const Results = () => {
             keyword,
             url,
             title,
-            source_domain
+            source_domain,
+            article_published_at,
+            created_at
           )
         `)
         .eq('is_consumer_review', true)
@@ -123,12 +163,18 @@ const Results = () => {
         return;
       }
 
-      setResults(data as AnalysisResult[]);
+      const typedData = data as AnalysisResult[];
+      setAllResults(typedData); // Store all results
+      setResults(typedData); // Initially show all
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearDateFilter = () => {
+    setDateRange(undefined);
   };
 
   // Calculate sentiment distribution
@@ -207,15 +253,56 @@ const Results = () => {
             </Button>
           </div>
           
-          <div>
-            <h1 className="text-4xl font-bold text-foreground">
-              분석 결과 대시보드
-            </h1>
-            {keyword && (
-              <p className="text-lg text-muted-foreground mt-2">
-                키워드: <span className="font-semibold text-foreground">{keyword}</span>
-              </p>
-            )}
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">
+                분석 결과 대시보드
+              </h1>
+              {keyword && (
+                <p className="text-lg text-muted-foreground mt-2">
+                  키워드: <span className="font-semibold text-foreground">{keyword}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Date Range Filter */}
+            <Card className="bg-muted/30">
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">기간별 필터링:</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <DateRangePicker
+                      dateRange={dateRange}
+                      onDateRangeChange={setDateRange}
+                      className="flex-1 md:max-w-md"
+                    />
+                    {dateRange && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={clearDateFilter}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {dateRange?.from || dateRange?.to ? (
+                      <span>필터링된 결과: <strong className="text-foreground">{results.length}</strong>개 / 전체: {allResults.length}개</span>
+                    ) : (
+                      <span>전체 결과: <strong className="text-foreground">{results.length}</strong>개</span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  💡 게시글 발행일(article_published_at) 기준으로 필터링됩니다. 발행일이 없는 경우 수집일(created_at) 기준으로 필터링됩니다.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="flex gap-4">
