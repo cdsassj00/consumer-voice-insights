@@ -111,18 +111,50 @@ const Index = () => {
   };
 
   const handleSearch = async () => {
-    const searchKeyword = selectedKeywordId 
+    const baseKeyword = selectedKeywordId 
       ? keywords.find(k => k.id === selectedKeywordId)?.keyword 
-      : keyword.trim();
+      : "";
+    const additionalInput = keyword.trim();
 
-    if (!searchKeyword) {
+    // 검색 쿼리 조합 로직: AND/OR 복합 조건
+    let searchQuery = "";
+    
+    if (baseKeyword && additionalInput) {
+      // 드롭다운 + 추가 키워드 → AND 조건
+      const additionalTerms = additionalInput
+        .split(',')
+        .map(k => k.trim())
+        .filter(k => k.length > 0);
+      
+      if (additionalTerms.length > 1) {
+        // 여러 개 → OR 조건으로 조합
+        const orQuery = additionalTerms.join(' OR ');
+        searchQuery = `${baseKeyword} (${orQuery})`;
+      } else {
+        // 하나만 → 단순 AND
+        searchQuery = `${baseKeyword} ${additionalTerms[0]}`;
+      }
+    } else if (baseKeyword) {
+      searchQuery = baseKeyword;
+    } else if (additionalInput) {
+      // 추가 입력만 있을 때도 콤마 처리
+      const terms = additionalInput
+        .split(',')
+        .map(k => k.trim())
+        .filter(k => k.length > 0);
+      
+      searchQuery = terms.length > 1 ? terms.join(' OR ') : terms[0];
+    } else {
+      // 아무것도 입력 안 됨
       toast({
-        title: "키워드를 선택하거나 입력하세요",
+        title: "키워드를 입력하세요",
         description: "검색할 키워드를 선택하거나 입력해주세요.",
         variant: "destructive",
       });
       return;
     }
+
+    const searchKeyword = searchQuery;
 
     setIsSearching(true);
     
@@ -359,15 +391,11 @@ const Index = () => {
                   </div>
                 )}
                 <Input
-                  placeholder="또는 직접 입력 (예: 삼성 갤럭시)"
+                  placeholder="추가 키워드 입력 (콤마로 구분 시 OR 조건)"
                   value={keyword}
-                  onChange={(e) => {
-                    setKeyword(e.target.value);
-                    setSelectedKeywordId("");
-                  }}
+                  onChange={(e) => setKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="flex-1"
-                  disabled={!!selectedKeywordId}
                 />
                 <Button 
                   onClick={handleSearch}
@@ -379,9 +407,40 @@ const Index = () => {
                 </Button>
               </div>
               
-              <div className="text-sm text-muted-foreground">
-                <p>💡 광고, 프로모션, 가십, 언론 기사는 제외하고</p>
-                <p className="ml-5">실제 소비자들의 리뷰와 의견만 수집합니다</p>
+              {/* 검색 조건 미리보기 */}
+              {(selectedKeywordId || keyword.trim()) && (
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="text-sm font-medium text-foreground mb-1">🔍 검색 조건 미리보기:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(() => {
+                      const baseKeyword = selectedKeywordId 
+                        ? keywords.find(k => k.id === selectedKeywordId)?.keyword 
+                        : "";
+                      const additionalInput = keyword.trim();
+                      
+                      if (baseKeyword && additionalInput) {
+                        const terms = additionalInput.split(',').map(k => k.trim()).filter(k => k.length > 0);
+                        if (terms.length > 1) {
+                          return `"${baseKeyword}" AND (${terms.join(' OR ')})`;
+                        }
+                        return `"${baseKeyword}" AND ${terms[0]}`;
+                      } else if (baseKeyword) {
+                        return `"${baseKeyword}"`;
+                      } else if (additionalInput) {
+                        const terms = additionalInput.split(',').map(k => k.trim()).filter(k => k.length > 0);
+                        return terms.length > 1 ? terms.join(' OR ') : terms[0];
+                      }
+                      return "";
+                    })()}
+                  </p>
+                </div>
+              )}
+
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>💡 <strong>검색 방법:</strong></p>
+                <p className="ml-5">• 드롭다운 선택 + 추가 키워드 입력 = AND 조건</p>
+                <p className="ml-5">• 추가 키워드에 콤마(,) 사용 = OR 조건</p>
+                <p className="ml-5">• 광고, 프로모션, 가십, 언론 기사 자동 제외</p>
               </div>
             </CardContent>
           </Card>
