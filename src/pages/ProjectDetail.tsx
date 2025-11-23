@@ -125,6 +125,14 @@ export default function ProjectDetail() {
     }
   }, [projectId]);
 
+  // 수집된 게시글이 있으면 자동으로 분석 생성
+  useEffect(() => {
+    if (searchResults.length > 0 && !analysisData && !isLoadingAnalysis) {
+      loadProjectAnalysis();
+      setShowAnalysis(true);
+    }
+  }, [searchResults.length]);
+
   // Define tour steps
   useEffect(() => {
     const steps: Step[] = [
