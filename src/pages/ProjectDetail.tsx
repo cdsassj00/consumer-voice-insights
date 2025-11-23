@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Settings, 
@@ -57,6 +58,8 @@ export default function ProjectDetail() {
   const [trendData, setTrendData] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+  const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
+  const [isNaturalSearching, setIsNaturalSearching] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -330,6 +333,112 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleNaturalLanguageSearch = async () => {
+    if (!naturalLanguageQuery.trim()) {
+      toast({
+        title: "검색어 입력 필요",
+        description: "검색하고 싶은 내용을 자연어로 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsNaturalSearching(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Step 1: Extract keywords
+      toast({
+        title: "키워드 추출 중",
+        description: `"${naturalLanguageQuery}"에서 핵심 키워드를 찾고 있습니다...`,
+      });
+
+      const { data: extractData, error: extractError } = await supabase.functions.invoke("extract-keywords", {
+        body: { query: naturalLanguageQuery },
+      });
+
+      if (extractError || !extractData?.keywords?.length) {
+        throw new Error("키워드 추출에 실패했습니다.");
+      }
+
+      const extractedKeywords = extractData.keywords;
+      console.log("Extracted keywords:", extractedKeywords);
+
+      // Step 2: Search with extracted keywords
+      toast({
+        title: "검색 시작",
+        description: `키워드: ${extractedKeywords.join(", ")}`,
+      });
+
+      let totalResults = 0;
+      for (const keyword of extractedKeywords) {
+        try {
+          const response = await supabase.functions.invoke("search-and-filter", {
+            body: {
+              keyword: keyword,
+              searchPeriod: "m3",
+              projectId: projectId,
+            },
+          });
+
+          if (response.error) {
+            console.error(`Error searching keyword ${keyword}:`, response.error);
+            continue;
+          }
+
+          if (response.data?.savedToDatabase) {
+            totalResults += response.data.savedToDatabase;
+          }
+
+          // 키워드를 프로젝트에 자동 추가 (중복 체크)
+          const existingKeyword = keywords.find(k => k.keyword === keyword);
+          if (!existingKeyword) {
+            await supabase
+              .from("keywords")
+              .insert({
+                keyword: keyword,
+                user_id: user.id,
+                project_id: projectId,
+                source: "ai_extracted",
+                search_count: 1,
+                last_searched_at: new Date().toISOString(),
+              });
+          } else {
+            // 기존 키워드의 검색 횟수 업데이트
+            await supabase
+              .from("keywords")
+              .update({
+                search_count: (existingKeyword.search_count || 0) + 1,
+                last_searched_at: new Date().toISOString(),
+              })
+              .eq("id", existingKeyword.id);
+          }
+        } catch (error) {
+          console.error(`Error processing keyword ${keyword}:`, error);
+        }
+      }
+
+      toast({
+        title: "검색 완료",
+        description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
+      });
+
+      setNaturalLanguageQuery("");
+      fetchProjectData();
+      setShowAnalysis(true);
+    } catch (error) {
+      console.error("Natural language search error:", error);
+      toast({
+        title: "검색 실패",
+        description: error instanceof Error ? error.message : "검색 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsNaturalSearching(false);
+    }
+  };
+
   const handleModalClose = () => {
     setIsModalOpen(false);
     fetchProjectData();
@@ -382,6 +491,48 @@ export default function ProjectDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Natural Language Search */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-primary" />
+            자연어 검색
+          </CardTitle>
+          <CardDescription>
+            검색하고 싶은 내용을 자연어로 입력하면 AI가 키워드를 추출하여 검색합니다
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input
+              placeholder="예: 올리브영 브링그린 제품 후기가 궁금해요"
+              value={naturalLanguageQuery}
+              onChange={(e) => setNaturalLanguageQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleNaturalLanguageSearch()}
+              disabled={isNaturalSearching}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleNaturalLanguageSearch} 
+              disabled={isNaturalSearching}
+              className="min-w-[100px]"
+            >
+              {isNaturalSearching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  검색 중...
+                </>
+              ) : (
+                "검색"
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            * 추출된 키워드는 자동으로 프로젝트에 추가됩니다
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Keywords Section */}
       <div className="grid gap-6 lg:grid-cols-2">

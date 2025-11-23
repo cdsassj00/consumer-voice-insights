@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.generate-advanced-insights]
 verify_jwt = true
+
+[functions.extract-keywords]
+verify_jwt = true
