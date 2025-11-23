@@ -113,26 +113,26 @@ export const FlowBackground = () => {
           const dx = mouse.x - p.x;
           const dy = mouse.y - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const radius = 180; // 마우스 영향 반경
+          const radius = 280; // 마우스 영향 반경 확대
 
           if (dist < radius) {
             const t = 1 - dist / radius;
-            highlight = t * t; // 중심부에서 더 강하게
+            highlight = t * t * t; // 중심부에서 훨씬 더 강하게
 
-            // 마우스 방향으로 약간 끌려가는 느낌
-            p.x += (dx / dist || 0) * 12 * delta * t;
-            p.y += (dy / dist || 0) * 12 * delta * t;
+            // 마우스 방향으로 강하게 끌려가는 느낌
+            p.x += (dx / dist || 0) * 25 * delta * t;
+            p.y += (dy / dist || 0) * 25 * delta * t;
           }
         }
 
         const pulse = 0.4 + 0.3 * Math.sin(time * 0.0015 + p.noiseOffset * 2);
-        const alpha = Math.min(1, 0.2 + pulse * 0.4 + highlight * 0.8);
-        const size = p.baseSize + highlight * 2.2;
+        const alpha = Math.min(1, 0.2 + pulse * 0.4 + highlight * 1.2);
+        const size = p.baseSize + highlight * 4;
 
         ctx.beginPath();
         ctx.fillStyle = `hsla(266, 89%, 68%, ${alpha.toFixed(3)})`;
         ctx.shadowColor = "hsla(266, 89%, 72%, 0.55)";
-        ctx.shadowBlur = 14 + highlight * 26;
+        ctx.shadowBlur = 20 + highlight * 40;
         ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
         ctx.fill();
       }
