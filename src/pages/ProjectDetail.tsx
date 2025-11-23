@@ -779,6 +779,62 @@ export default function ProjectDetail() {
         </CardContent>
       </Card>
 
+      {/* Collected Posts List for this Project */}
+      <Card>
+        <CardHeader>
+          <CardTitle>수집된 게시글 ({searchResults.length})</CardTitle>
+          <CardDescription>
+            이 프로젝트 검색으로 1차 DB에 저장된 게시글입니다
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {searchResults.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>아직 수집된 게시글이 없습니다.</p>
+              <p className="text-sm mt-1">상단의 "프로젝트 전체 검색" 또는 가이드 검색을 실행해보세요.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[480px] overflow-y-auto">
+              {searchResults.map((result) => (
+                <a
+                  key={result.id}
+                  href={result.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block rounded-lg border bg-card hover:bg-accent/60 transition-colors p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium line-clamp-1">{result.title}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {result.keyword}
+                        </Badge>
+                        {result.status && (
+                          <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                            {result.status}
+                          </Badge>
+                        )}
+                      </div>
+                      {result.snippet && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {result.snippet}
+                        </p>
+                      )}
+                    </div>
+                    {result.article_published_at && (
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(result.article_published_at).toLocaleDateString("ko-KR")}
+                      </span>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Integrated Analysis Dashboard */}
       {showAnalysis && (
         <Card>
