@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Session } from "@supabase/supabase-js";
+import { FlowBackground } from "@/components/FlowBackground";
+import { MessageCircle, TrendingUp, Users } from "lucide-react";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -155,83 +157,146 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">한국 소비자 인사이트 플랫폼</CardTitle>
-          <CardDescription>
-            실제 소비자들의 의견을 분석하세요
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">로그인</TabsTrigger>
-              <TabsTrigger value="signup">회원가입</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="이메일"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                  />
+    <div className="min-h-screen relative overflow-hidden">
+      <FlowBackground />
+      
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-background/95 backdrop-blur-sm" />
+      
+      <div className="relative min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+          {/* Left side - Marketing content */}
+          <div className="space-y-8 text-center md:text-left">
+            <div className="space-y-4 animate-fade-in">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent leading-tight">
+                소비자 VOC의
+                <br />새로운 패러다임
+              </h1>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
+                이제 더 이상 그럴듯한 이야기가 아닌,
+                <br />
+                <span className="text-foreground font-semibold">진짜 소비자의 목소리</span>를 수집하세요
+              </p>
+            </div>
+
+            <div className="space-y-6 mt-12">
+              <div className="flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <div className="p-3 rounded-lg bg-primary/10 text-primary">
+                  <MessageCircle className="w-6 h-6" />
                 </div>
-                <div className="space-y-2">
-                  <Input
-                    type="password"
-                    placeholder="비밀번호"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">실제 커뮤니티에서 수집</h3>
+                  <p className="text-muted-foreground">
+                    공식 리뷰 사이트가 아닌, 소비자들이 진솔하게 의견을 나누는 커뮤니티 게시판에서 직접 수집합니다
+                  </p>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "로그인 중..." : "로그인"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="이메일"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                  />
+              </div>
+
+              <div className="flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
+                  <TrendingUp className="w-6 h-6" />
                 </div>
-                <div className="space-y-2">
-                  <Input
-                    type="password"
-                    placeholder="비밀번호 (최소 6자)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">AI 기반 심층 분석</h3>
+                  <p className="text-muted-foreground">
+                    단순 키워드 통계를 넘어, 소비자 페르소나와 경쟁 포지셔닝까지 분석합니다
+                  </p>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "가입 중..." : "회원가입"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              </div>
+
+              <div className="flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">진짜 인사이트 발견</h3>
+                  <p className="text-muted-foreground">
+                    꾸며진 후기가 아닌, 소비자들의 진실된 경험과 니즈를 파악하세요
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Auth card */}
+          <Card className="w-full backdrop-blur-lg bg-card/95 shadow-2xl border-border/50 animate-scale-in">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">소비자 인사이트 플랫폼</CardTitle>
+              <CardDescription>
+                실제 소비자들의 의견을 분석하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="signin" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="signin">로그인</TabsTrigger>
+                  <TabsTrigger value="signup">회원가입</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="signin">
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Input
+                        type="email"
+                        placeholder="이메일"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        type="password"
+                        placeholder="비밀번호"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "로그인 중..." : "로그인"}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Input
+                        type="email"
+                        placeholder="이메일"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        type="password"
+                        placeholder="비밀번호 (최소 6자)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "가입 중..." : "회원가입"}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
