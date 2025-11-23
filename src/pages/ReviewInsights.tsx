@@ -25,7 +25,15 @@ interface AnalysisResult {
   dateDistribution: { date: string; count: number }[];
 }
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const CHART_COLORS = {
+  chart1: 'hsl(260 80% 65%)',
+  chart2: 'hsl(200 90% 55%)',
+  chart3: 'hsl(280 70% 60%)',
+  chart4: 'hsl(160 70% 50%)',
+  chart5: 'hsl(340 75% 58%)',
+};
+
+const COLORS = [CHART_COLORS.chart1, CHART_COLORS.chart2, CHART_COLORS.chart3, CHART_COLORS.chart4, CHART_COLORS.chart5];
 
 export default function ReviewInsights() {
   const { toast } = useToast();
@@ -458,11 +466,11 @@ export default function ReviewInsights() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={analysis.ratingDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="rating" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 15% 92%)" opacity={0.3} />
+                    <XAxis dataKey="rating" tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
+                    <YAxis tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
+                    <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
+                    <Bar dataKey="count" fill={CHART_COLORS.chart2} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -476,11 +484,11 @@ export default function ReviewInsights() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={analysis.topics.slice(0, 5)} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis type="category" dataKey="topic" width={80} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 15% 92%)" opacity={0.3} />
+                    <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
+                    <YAxis type="category" dataKey="topic" width={80} tick={{ fontSize: 11, fill: 'hsl(240 8% 50%)' }} />
+                    <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
+                    <Bar dataKey="count" fill={CHART_COLORS.chart1} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -494,11 +502,11 @@ export default function ReviewInsights() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={analysis.dateDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={{ r: 3 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 15% 92%)" opacity={0.3} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(240 8% 50%)' }} angle={-45} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
+                    <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="count" stroke={CHART_COLORS.chart3} strokeWidth={2} dot={{ r: 4, fill: CHART_COLORS.chart3 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>

@@ -81,6 +81,13 @@ All colors MUST be HSL.
     --success-foreground: 0 0% 100%;
     --info: 200 90% 50%;
     --info-foreground: 0 0% 100%;
+    
+    /* Chart colors - vibrant palette */
+    --chart-1: 260 80% 65%;
+    --chart-2: 200 90% 55%;
+    --chart-3: 280 70% 60%;
+    --chart-4: 160 70% 50%;
+    --chart-5: 340 75% 58%;
   }
 
   .dark {
@@ -155,6 +162,13 @@ All colors MUST be HSL.
     --success-foreground: 0 0% 100%;
     --info: 200 90% 55%;
     --info-foreground: 0 0% 100%;
+    
+    /* Dark chart colors */
+    --chart-1: 260 80% 70%;
+    --chart-2: 200 90% 60%;
+    --chart-3: 280 70% 65%;
+    --chart-4: 160 70% 55%;
+    --chart-5: 340 75% 63%;
   }
 }
 
