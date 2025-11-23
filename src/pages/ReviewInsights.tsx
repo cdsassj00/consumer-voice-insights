@@ -490,7 +490,7 @@ export default function ReviewInsights() {
                     <XAxis dataKey="rating" tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
                     <YAxis tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
                     <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
-                    <Bar dataKey="count" fill={CHART_COLORS.chart2} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill={chartColors[1]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -508,7 +508,7 @@ export default function ReviewInsights() {
                     <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
                     <YAxis type="category" dataKey="topic" width={80} tick={{ fontSize: 11, fill: 'hsl(240 8% 50%)' }} />
                     <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
-                    <Bar dataKey="count" fill={CHART_COLORS.chart1} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="count" fill={chartColors[0]} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -526,7 +526,7 @@ export default function ReviewInsights() {
                     <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(240 8% 50%)' }} angle={-45} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
                     <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
-                    <Line type="monotone" dataKey="count" stroke={CHART_COLORS.chart3} strokeWidth={2} dot={{ r: 4, fill: CHART_COLORS.chart3 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="count" stroke={chartColors[2]} strokeWidth={2} dot={{ r: 4, fill: chartColors[2] }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
