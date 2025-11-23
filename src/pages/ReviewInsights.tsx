@@ -31,6 +31,24 @@ export default function ReviewInsights() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  const sampleData = [
+    { review: "이 제품 정말 좋아요. 배송도 빠르고 품질도 만족스럽습니다. 다음에도 재구매 의향 있어요.", rating: 5, date: "2025-01-15" },
+    { review: "가격 대비 괜찮은 것 같아요. 다만 포장이 좀 아쉬웠어요. 그래도 제품 자체는 만족합니다.", rating: 4, date: "2025-01-14" },
+    { review: "별로였습니다. 기대 이하였어요. 품질이 생각보다 안 좋네요.", rating: 2, date: "2025-01-13" },
+    { review: "배송이 정말 빨랐어요! 포장도 꼼꼼하고 제품 상태도 완벽했습니다. 강력 추천해요.", rating: 5, date: "2025-01-12" },
+    { review: "생각보다 크기가 작아서 조금 실망했지만 품질은 괜찮아요.", rating: 3, date: "2025-01-11" },
+    { review: "가성비 최고! 이 가격에 이 정도 품질이면 정말 만족스럽습니다.", rating: 5, date: "2025-01-10" },
+    { review: "디자인은 예쁜데 내구성이 좀 떨어지는 것 같아요. 조심해서 써야 할 듯.", rating: 3, date: "2025-01-09" },
+    { review: "환불 요청했습니다. 제품에 결함이 있었어요.", rating: 1, date: "2025-01-08" },
+    { review: "친구 선물로 샀는데 정말 좋아했어요. 포장도 고급스럽고 만족합니다.", rating: 5, date: "2025-01-07" },
+    { review: "평범해요. 특별히 나쁘지도 좋지도 않은 제품이네요.", rating: 3, date: "2025-01-06" },
+    { review: "색상이 사진과 달라서 당황했지만 그래도 쓸만해요.", rating: 3, date: "2025-01-05" },
+    { review: "재구매 확정! 이미 세 번째 구매입니다. 품질 정말 좋아요.", rating: 5, date: "2025-01-04" },
+    { review: "기능은 좋은데 가격이 좀 비싼 것 같아요. 할인할 때 사는 게 나을 듯.", rating: 4, date: "2025-01-03" },
+    { review: "완전 실망했어요. 다신 안 삽니다. 품질도 별로고 CS도 불친절해요.", rating: 1, date: "2025-01-02" },
+    { review: "무난하게 쓰기 좋아요. 가격도 적당하고 품질도 괜찮습니다.", rating: 4, date: "2025-01-01" },
+  ];
+
   const downloadTemplate = () => {
     const template = [
       { review: "이 제품 정말 좋아요. 배송도 빠르고 품질도 만족스럽습니다.", rating: 5, date: "2025-01-15" },
@@ -47,6 +65,62 @@ export default function ReviewInsights() {
       title: "템플릿 다운로드 완료",
       description: "템플릿을 수정하여 업로드해주세요.",
     });
+  };
+
+  const loadSampleData = async () => {
+    setReviews(sampleData);
+    toast({
+      title: "샘플 데이터 로드 완료",
+      description: `${sampleData.length}개의 샘플 리뷰를 불러왔습니다.`,
+    });
+    
+    // 자동으로 분석 시작
+    setIsAnalyzing(true);
+    
+    try {
+      const reviewTexts = sampleData.map(r => r.review || "").filter(Boolean);
+      
+      const wordFreq: Record<string, number> = {};
+      reviewTexts.forEach(text => {
+        const words = text.split(/[\s,.:;!?]+/).filter(w => w.length > 1);
+        words.forEach(word => {
+          wordFreq[word] = (wordFreq[word] || 0) + 1;
+        });
+      });
+      
+      const topKeywords = Object.entries(wordFreq)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20)
+        .map(([word, frequency]) => ({ word, frequency }));
+
+      const { data, error } = await supabase.functions.invoke('analyze-review-insights', {
+        body: { reviews: reviewTexts.slice(0, 100) }
+      });
+
+      if (error) throw error;
+
+      setAnalysis({
+        sentiment: data.sentiment || [],
+        topics: data.topics || [],
+        keywords: topKeywords,
+        personas: data.personas || [],
+        networkGraph: data.networkGraph || { nodes: [], edges: [] },
+      });
+
+      toast({
+        title: "샘플 데이터 분석 완료",
+        description: "리뷰 인사이트가 생성되었습니다.",
+      });
+    } catch (error) {
+      console.error("Sample analysis error:", error);
+      toast({
+        title: "분석 실패",
+        description: "분석 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,6 +346,10 @@ export default function ReviewInsights() {
             <Button onClick={downloadTemplate} variant="outline" className="w-full">
               <Download className="w-4 h-4 mr-2" />
               템플릿 다운로드
+            </Button>
+            <Button onClick={loadSampleData} variant="secondary" className="w-full">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              샘플 데이터로 테스트
             </Button>
           </CardContent>
         </Card>
