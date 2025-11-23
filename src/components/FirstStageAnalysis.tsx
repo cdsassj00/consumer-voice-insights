@@ -4,10 +4,26 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { TrendingUp, MessageSquare, Hash, Calendar, Network, ShoppingBag, Star, TrendingDown, Activity } from "lucide-react";
 import { ArticleModal } from "./ArticleModal";
-import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, Tooltip as ChartTooltip, Legend as ChartLegend } from 'chart.js';
-import { Pie, Bar as BarChartJS, Line as LineChartJS, Radar as RadarChartJS } from 'react-chartjs-2';
-
-ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, ChartTooltip, ChartLegend);
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+} from "recharts";
 
 interface SearchResult {
   id: string;
@@ -115,39 +131,6 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
     'hsl(210, 100%, 60%)',
   ];
 
-  const commonChartOptions: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    onClick: (event: any, elements: any[]) => {
-      if (elements.length > 0) {
-        const index = elements[0].index;
-        console.log('Chart clicked:', { index });
-      }
-    },
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          font: { size: 11, family: 'Noto Sans KR' },
-          padding: 10,
-          usePointStyle: true,
-          color: 'hsl(var(--foreground))'
-        }
-      },
-      tooltip: {
-        backgroundColor: 'hsl(var(--background))',
-        titleColor: 'hsl(var(--foreground))',
-        bodyColor: 'hsl(var(--muted-foreground))',
-        borderColor: 'hsl(var(--border))',
-        borderWidth: 1,
-        cornerRadius: 8,
-        padding: 12,
-        titleFont: { size: 13, weight: 'bold', family: 'Noto Sans KR' },
-        bodyFont: { size: 12, family: 'Noto Sans KR' }
-      }
-    }
-  };
 
   const sentimentData = [
     { name: "긍정", value: analysis.sentiment.positive },
@@ -257,26 +240,66 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
-              <Pie 
-                data={{
-                  labels: sentimentData.map(d => d.name),
-                  datasets: [{
-                    data: sentimentData.map(d => d.value),
-                    backgroundColor: chartColors,
-                    borderWidth: 2,
-                    borderColor: 'hsl(var(--background))'
-                  }]
-                }}
-                options={{
-                  ...commonChartOptions,
-                  onClick: (event, elements) => {
-                    if (elements.length > 0) {
-                      const index = elements[0].index;
-                      handleChartClick(() => true, `${sentimentData[index].name} 감성 게시글`);
-                    }
-                  }
-                }}
-              />
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={sentimentData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    onClick={(_, index) => {
+                      const sentiment = sentimentData[index];
+                      if (sentiment) {
+                        handleChartClick(
+                          () => true,
+                          `${sentiment.name} 감성 게시글`
+                        );
+                      }
+                    }}
+                  >
+                    {sentimentData.map((entry, index) => (
+                      <Cell
+                        key={`sentiment-cell-${index}`}
+                        fill={chartColors[index % chartColors.length]}
+                        stroke="hsl(var(--background))"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      padding: 12,
+                    }}
+                    itemStyle={{
+                      fontSize: 12,
+                      fontFamily: "Noto Sans KR",
+                      color: "hsl(var(--muted-foreground))",
+                    }}
+                    labelStyle={{
+                      fontSize: 13,
+                      fontFamily: "Noto Sans KR",
+                      fontWeight: "bold",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    formatter={(value: any) => (
+                      <span style={{ fontSize: 11, fontFamily: "Noto Sans KR" }}>
+                        {value}
+                      </span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -289,43 +312,59 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
-              <BarChartJS 
-                data={{
-                  labels: analysis.mainTopics.map(d => d.topic),
-                  datasets: [{
-                    label: '언급 빈도',
-                    data: analysis.mainTopics.map(d => d.count),
-                    backgroundColor: chartColors[3],
-                    borderRadius: 8
-                  }]
-                }}
-                options={{
-                  ...commonChartOptions,
-                  indexAxis: 'y' as const,
-                  onClick: (event, elements) => {
-                    if (elements.length > 0) {
-                      const index = elements[0].index;
-                      const topic = analysis.mainTopics[index].topic;
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analysis.mainTopics} layout="vertical">
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    horizontal={false}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="topic"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    width={100}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      padding: 12,
+                    }}
+                    itemStyle={{
+                      fontSize: 12,
+                      fontFamily: "Noto Sans KR",
+                      color: "hsl(var(--muted-foreground))",
+                    }}
+                    labelStyle={{
+                      fontSize: 13,
+                      fontFamily: "Noto Sans KR",
+                      fontWeight: "bold",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill={chartColors[3]}
+                    radius={[8, 8, 0, 0]}
+                    onClick={(data) => {
+                      const topic = (data?.payload as any)?.topic as string | undefined;
+                      if (!topic) return;
                       handleChartClick(
-                        (result) => result.snippet?.toLowerCase().includes(topic.toLowerCase()) || 
-                                    result.title.toLowerCase().includes(topic.toLowerCase()),
+                        (result) =>
+                          result.snippet?.toLowerCase().includes(topic.toLowerCase()) ||
+                          result.title.toLowerCase().includes(topic.toLowerCase()),
                         `${topic} 관련 게시글`
                       );
-                    }
-                  },
-                  scales: {
-                    x: {
-                      beginAtZero: true,
-                      ticks: { color: 'hsl(var(--muted-foreground))', font: { size: 11, family: 'Noto Sans KR' } },
-                      grid: { color: 'hsl(var(--border))', lineWidth: 0.5 }
-                    },
-                    y: {
-                      ticks: { color: 'hsl(var(--muted-foreground))', font: { size: 10, family: 'Noto Sans KR' } },
-                      grid: { display: false }
-                    }
-                  }
-                }}
-              />
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -344,33 +383,44 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           <CardContent>
             <div className="space-y-6">
               <div className="h-[300px]">
-                <RadarChartJS 
-                  data={{
-                    labels: categoryData.map(d => d.category),
-                    datasets: [{
-                      label: '언급 빈도',
-                      data: categoryData.map(d => d.value),
-                      backgroundColor: chartColors[3] + '40',
-                      borderColor: chartColors[3],
-                      borderWidth: 2,
-                      pointBackgroundColor: chartColors[3],
-                      pointBorderColor: '#fff',
-                      pointHoverBackgroundColor: '#fff',
-                      pointHoverBorderColor: chartColors[3]
-                    }]
-                  }}
-                  options={{
-                    ...commonChartOptions,
-                    scales: {
-                      r: {
-                        beginAtZero: true,
-                        ticks: { color: 'hsl(var(--muted-foreground))', font: { size: 10, family: 'Noto Sans KR' } },
-                        grid: { color: 'hsl(var(--border))' },
-                        pointLabels: { color: 'hsl(var(--foreground))', font: { size: 11, family: 'Noto Sans KR' } }
-                      }
-                    }
-                  }}
-                />
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={categoryData}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis
+                      dataKey="category"
+                      tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
+                    />
+                    <PolarRadiusAxis
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    />
+                    <Radar
+                      name="언급 빈도"
+                      dataKey="value"
+                      stroke={chartColors[3]}
+                      fill={chartColors[3]}
+                      fillOpacity={0.25}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        padding: 12,
+                      }}
+                      itemStyle={{
+                        fontSize: 12,
+                        fontFamily: "Noto Sans KR",
+                        color: "hsl(var(--muted-foreground))",
+                      }}
+                      labelStyle={{
+                        fontSize: 13,
+                        fontFamily: "Noto Sans KR",
+                        fontWeight: "bold",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
