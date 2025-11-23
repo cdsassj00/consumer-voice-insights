@@ -43,6 +43,39 @@ type SearchResult = {
   status: string | null;
 };
 
+// 복잡한 검색 쿼리를 읽기 쉬운 형태로 변환하는 헬퍼 함수
+const formatKeywordDisplay = (keyword: string, displayName: string | null): string => {
+  if (displayName) return displayName;
+  
+  // 가이드 검색 형식인지 확인: (A AND B AND C) OR (A AND B AND D) 형태
+  if (keyword.includes(" OR ") && keyword.includes(" AND ") && keyword.includes("(")) {
+    try {
+      // 각 OR 절을 분리
+      const orParts = keyword.split(" OR ");
+      
+      // 첫 번째 절에서 공통 부분(회사, 제품) 추출
+      const firstPart = orParts[0].replace(/^\(|\)$/g, "").split(" AND ");
+      if (firstPart.length >= 2) {
+        const company = firstPart[0];
+        const product = firstPart[1];
+        
+        // 각 OR 절에서 마지막 키워드(정보 타입) 추출
+        const infoTypes = orParts.map(part => {
+          const parts = part.replace(/^\(|\)$/g, "").split(" AND ");
+          return parts[parts.length - 1];
+        });
+        
+        return `${company} ${product} (${infoTypes.join("/")})`;
+      }
+    } catch (e) {
+      console.error("Failed to format keyword:", e);
+    }
+  }
+  
+  // 변환 실패 시 원본 반환 (너무 길면 줄임)
+  return keyword.length > 50 ? keyword.substring(0, 47) + "..." : keyword;
+};
+
 export default function ProjectDetail() {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -657,7 +690,12 @@ export default function ProjectDetail() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{keyword.display_name || keyword.keyword}</span>
+                        <span className="font-medium">{formatKeywordDisplay(keyword.keyword, keyword.display_name)}</span>
+                        {keyword.source === "guided_search" && (
+                          <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                            가이드 검색
+                          </Badge>
+                        )}
                         {keyword.category && (
                           <Badge variant="secondary" className="text-xs">
                             {keyword.category}
@@ -725,7 +763,7 @@ export default function ProjectDetail() {
                   <SelectContent>
                     {availableKeywords.map((keyword) => (
                       <SelectItem key={keyword.id} value={keyword.id}>
-                        {keyword.display_name || keyword.keyword}
+                        {formatKeywordDisplay(keyword.keyword, keyword.display_name)}
                         {keyword.category && ` (${keyword.category})`}
                       </SelectItem>
                     ))}
@@ -740,7 +778,7 @@ export default function ProjectDetail() {
                       onClick={() => handleAddKeyword(keyword.id)}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{keyword.display_name || keyword.keyword}</span>
+                        <span className="font-medium">{formatKeywordDisplay(keyword.keyword, keyword.display_name)}</span>
                         {keyword.category && (
                           <Badge variant="secondary" className="text-xs">
                             {keyword.category}
