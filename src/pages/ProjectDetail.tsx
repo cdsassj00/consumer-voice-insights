@@ -589,86 +589,159 @@ export default function ProjectDetail() {
       return;
     }
 
-    if (selectedKeywordTypes.length === 0) {
-      toast({
-        title: "정보 타입 선택 필요",
-        description: "최소 1개 이상의 정보 타입을 선택해주세요.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsGuidedSearching(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 선택된 키워드 타입의 라벨 추출
-      const selectedLabels = keywordTypes
-        .filter(type => selectedKeywordTypes.includes(type.id))
-        .map(type => type.label);
+      // Case 1: 3단계 선택한 경우 - 기존 방식
+      if (selectedKeywordTypes.length > 0) {
+        // 선택된 키워드 타입의 라벨 추출
+        const selectedLabels = keywordTypes
+          .filter(type => selectedKeywordTypes.includes(type.id))
+          .map(type => type.label);
 
-      // (1단계 AND 2단계 AND 3단계_첫번째) OR (1단계 AND 2단계 AND 3단계_두번째) 형식
-      const searchQueries = selectedLabels.map(
-        label => `(${companyBrandInput} AND ${productServiceInput} AND ${label})`
-      );
-      const searchQuery = searchQueries.join(" OR ");
-      
-      // 사람이 읽기 쉬운 표시명 생성
-      const displayName = `${companyBrandInput} ${productServiceInput} (${selectedLabels.join("/")})`;
-      
-      toast({
-        title: "검색 시작",
-        description: `${displayName} 검색을 시작합니다`,
-      });
+        // (1단계 AND 2단계 AND 3단계_첫번째) OR (1단계 AND 2단계 AND 3단계_두번째) 형식
+        const searchQueries = selectedLabels.map(
+          label => `(${companyBrandInput} AND ${productServiceInput} AND ${label})`
+        );
+        const searchQuery = searchQueries.join(" OR ");
+        
+        // 사람이 읽기 쉬운 표시명 생성
+        const displayName = `${companyBrandInput} ${productServiceInput} (${selectedLabels.join("/")})`;
+        
+        toast({
+          title: "검색 시작",
+          description: `${displayName} 검색을 시작합니다`,
+        });
 
-      const response = await supabase.functions.invoke("search-and-filter", {
-        body: {
-          keyword: searchQuery,
-          searchPeriod: "m3",
-          projectId: projectId,
-        },
-      });
-
-      if (response.error) throw response.error;
-
-      const totalResults = response.data?.savedToDatabase || 0;
-
-      // 검색에 사용된 키워드를 프로젝트에 자동 추가
-      const existingKeyword = keywords.find(k => k.keyword === searchQuery);
-      if (!existingKeyword) {
-        await supabase
-          .from("keywords")
-          .insert({
+        const response = await supabase.functions.invoke("search-and-filter", {
+          body: {
             keyword: searchQuery,
-            display_name: displayName,
-            user_id: user.id,
-            project_id: projectId,
-            source: "guided_search",
-            category: null,
-            search_count: 1,
-            last_searched_at: new Date().toISOString(),
-          });
-      } else {
-        await supabase
-          .from("keywords")
-          .update({
-            search_count: (existingKeyword.search_count || 0) + 1,
-            last_searched_at: new Date().toISOString(),
-          })
-          .eq("id", existingKeyword.id);
+            searchPeriod: "m3",
+            projectId: projectId,
+          },
+        });
+
+        if (response.error) throw response.error;
+
+        const totalResults = response.data?.savedToDatabase || 0;
+
+        // 검색에 사용된 키워드를 프로젝트에 자동 추가
+        const existingKeyword = keywords.find(k => k.keyword === searchQuery);
+        if (!existingKeyword) {
+          await supabase
+            .from("keywords")
+            .insert({
+              keyword: searchQuery,
+              display_name: displayName,
+              user_id: user.id,
+              project_id: projectId,
+              source: "guided_search",
+              category: null,
+              search_count: 1,
+              last_searched_at: new Date().toISOString(),
+            });
+        } else {
+          // 이미 있는 키워드인 경우 search_count와 last_searched_at 업데이트
+          await supabase
+            .from("keywords")
+            .update({
+              search_count: (existingKeyword.search_count || 0) + 1,
+              last_searched_at: new Date().toISOString(),
+            })
+            .eq("id", existingKeyword.id);
+        }
+
+        toast({
+          title: "검색 완료",
+          description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
+        });
+
+        setCompanyBrandInput("");
+        setProductServiceInput("");
+        setSelectedKeywordTypes([]);
+        fetchProjectData();
+        setShowAnalysis(true);
+      } 
+      // Case 2: 3단계 선택하지 않은 경우 - LLM 자동 생성
+      else {
+        toast({
+          title: "키워드 자동 생성 중",
+          description: "AI가 다양한 검색 키워드를 생성하고 있습니다...",
+        });
+
+        // LLM을 통해 키워드 자동 생성
+        const generateResponse = await supabase.functions.invoke("generate-product-keywords", {
+          body: {
+            company: companyBrandInput.trim(),
+            product: productServiceInput.trim(),
+          },
+        });
+
+        if (generateResponse.error) throw generateResponse.error;
+
+        const generatedKeywords = generateResponse.data?.keywords || [];
+        
+        if (generatedKeywords.length === 0) {
+          throw new Error("키워드 생성에 실패했습니다.");
+        }
+
+        toast({
+          title: "키워드 생성 완료",
+          description: `${generatedKeywords.length}개의 키워드로 검색을 시작합니다.`,
+        });
+
+        let totalResults = 0;
+
+        // 생성된 각 키워드로 검색 및 등록
+        for (const kw of generatedKeywords) {
+          try {
+            // 검색 실행
+            const searchResponse = await supabase.functions.invoke("search-and-filter", {
+              body: {
+                keyword: kw.searchQuery,
+                searchPeriod: "m3",
+                projectId: projectId,
+              },
+            });
+
+            if (!searchResponse.error) {
+              totalResults += searchResponse.data?.savedToDatabase || 0;
+            }
+
+            // 키워드를 프로젝트에 등록
+            const existingKeyword = keywords.find(k => k.keyword === kw.searchQuery);
+            if (!existingKeyword) {
+              await supabase
+                .from("keywords")
+                .insert({
+                  keyword: kw.searchQuery,
+                  display_name: kw.displayName,
+                  user_id: user.id,
+                  project_id: projectId,
+                  source: "auto_generated",
+                  category: null,
+                  search_count: 1,
+                  last_searched_at: new Date().toISOString(),
+                });
+            }
+          } catch (error) {
+            console.error(`Error processing keyword ${kw.displayName}:`, error);
+          }
+        }
+
+        toast({
+          title: "검색 완료",
+          description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
+        });
+
+        setCompanyBrandInput("");
+        setProductServiceInput("");
+        setSelectedKeywordTypes([]);
+        fetchProjectData();
+        setShowAnalysis(true);
       }
-
-      toast({
-        title: "검색 완료",
-        description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
-      });
-
-      setCompanyBrandInput("");
-      setProductServiceInput("");
-      setSelectedKeywordTypes([]);
-      fetchProjectData();
-      setShowAnalysis(true);
     } catch (error) {
       console.error("Guided search error:", error);
       toast({
@@ -779,8 +852,11 @@ export default function ProjectDetail() {
           {/* Step 3: Keyword Type Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              3단계: 정보 타입 선택 (복수 선택 가능)
+              3단계: 정보 타입 선택 <span className="text-muted-foreground font-normal">(선택사항)</span>
             </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              ※ 선택하지 않으면 AI가 자동으로 다양한 키워드를 생성합니다
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {keywordTypes.map((type) => (
                 <Button
@@ -801,7 +877,7 @@ export default function ProjectDetail() {
           <div className="flex gap-2 pt-2">
             <Button 
               onClick={handleGuidedSearch} 
-              disabled={isGuidedSearching || !companyBrandInput.trim() || !productServiceInput.trim() || selectedKeywordTypes.length === 0}
+              disabled={isGuidedSearching || !companyBrandInput.trim() || !productServiceInput.trim()}
               className="flex-1"
             >
               {isGuidedSearching ? (

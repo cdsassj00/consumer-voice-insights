@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.extract-keywords]
 verify_jwt = true
+
+[functions.generate-product-keywords]
+verify_jwt = true
