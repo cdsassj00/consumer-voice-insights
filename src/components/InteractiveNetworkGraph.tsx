@@ -31,8 +31,15 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    // High DPI support for crisp rendering
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
 
     // 노드 초기화
     if (nodesRef.current.size === 0) {
@@ -130,13 +137,17 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
       // Render
       ctx.clearRect(0, 0, width, height);
 
-      // Draw edges
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-      ctx.lineWidth = 1.8;
+      // Draw edges with gradient for better visibility
       edges.forEach(edge => {
         const source = nodesRef.current.get(edge.source);
         const target = nodesRef.current.get(edge.target);
         if (source && target) {
+          const gradient = ctx.createLinearGradient(source.x, source.y, target.x, target.y);
+          gradient.addColorStop(0, "rgba(155, 135, 245, 0.6)");
+          gradient.addColorStop(1, "rgba(155, 135, 245, 0.6)");
+          
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
           ctx.moveTo(source.x, source.y);
           ctx.lineTo(target.x, target.y);
@@ -228,9 +239,8 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
   return (
     <canvas
       ref={canvasRef}
-      width={800}
-      height={400}
       className="w-full h-[400px] rounded-lg bg-muted/20 border"
+      style={{ width: '100%', height: '400px' }}
       onMouseMove={handleMouseMove}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
