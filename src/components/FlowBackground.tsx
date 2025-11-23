@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -42,25 +42,35 @@ const FlowParticles = () => {
     const opacities = pointsRef.current.geometry.attributes.opacity.array as Float32Array;
     const time = state.clock.getElapsedTime();
 
-    // 마우스 현재 위치만 사용해서, 주변 입자들이 숨쉬듯 나타났다 사라지도록 처리
+    // 마우스 주변과 무관하게 기본적으로 은은하게 보이도록 하고,
+    // 마우스 근처에서는 더 강하게 빛나도록 처리
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       const px = positions[i3];
       const py = positions[i3 + 1];
 
+      // 기본 숨쉬기 느낌의 투명도 (항상 어느 정도는 보이도록)
+      const baseOpacity = 0.35 + 0.15 * Math.sin(time * 0.8 + i * 0.3);
+
+      // 마우스와의 거리 계산
       const dx = mousePosition.current.x - px;
       const dy = mousePosition.current.y - py;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       // 마우스 주변 반경 안에 있는 입자들만 강하게 활성화
-      const radius = 5;
-      let targetOpacity = 0;
+      const radius = 6;
+      let targetOpacity = baseOpacity;
+
       if (distance < radius) {
-        targetOpacity = 1 - distance / radius; // 가까울수록 더 밝게
+        const intensity = 1 - distance / radius; // 가까울수록 더 밝게
+        targetOpacity += 0.5 * intensity;
       }
 
+      // 0~1 범위로 클램프
+      targetOpacity = Math.max(0, Math.min(1, targetOpacity));
+
       // 부드럽게 숨쉬는 듯한 페이드 인/아웃
-      opacities[i] += (targetOpacity - opacities[i]) * 0.25;
+      opacities[i] += (targetOpacity - opacities[i]) * 0.2;
 
       // 전체에 아주 약한 부유감 부여
       positions[i3 + 2] = Math.sin(time * 0.4 + i * 0.05) * 0.4;
@@ -70,13 +80,19 @@ const FlowParticles = () => {
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
-  // Handle mouse movement
-  if (typeof window !== 'undefined') {
-    window.addEventListener('mousemove', (event) => {
+  // Handle mouse movement - once on mount
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
       mousePosition.current.x = ((event.clientX / window.innerWidth) * 2 - 1) * 10;
       mousePosition.current.y = (-(event.clientY / window.innerHeight) * 2 + 1) * 10;
-    });
-  }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
 
   return (
     <points ref={pointsRef}>
