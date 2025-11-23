@@ -20,8 +20,8 @@ const mainItems = [
 ];
 
 const managementItems = [
-  { title: "키워드 관리", url: "/", icon: Star, badge: "키워드" },
-  { title: "프로젝트 관리", url: "#", icon: FolderKanban, disabled: true, badge: "Phase 2" },
+  { title: "키워드 관리", url: "/", icon: Star },
+  { title: "프로젝트 관리", url: "/projects", icon: FolderKanban },
 ];
 
 const settingsItems = [
@@ -84,35 +84,15 @@ export function AppSidebar() {
             <SidebarMenu>
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild={!item.disabled}
-                    isActive={!item.disabled && isActive(item.url)}
-                    disabled={item.disabled}
-                  >
-                    {item.disabled ? (
-                      <div className="flex items-center gap-2 text-sidebar-foreground/40 cursor-not-allowed">
-                        <item.icon className="h-4 w-4" />
-                        {open && (
-                          <>
-                            <span className="flex-1">{item.title}</span>
-                            {item.badge && (
-                              <span className="text-xs bg-sidebar-accent px-2 py-0.5 rounded">
-                                {item.badge}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <NavLink
-                        to={item.url}
-                        className="hover:bg-sidebar-accent text-sidebar-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {open && <span>{item.title}</span>}
-                      </NavLink>
-                    )}
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink
+                      to={item.url}
+                      className="hover:bg-sidebar-accent text-sidebar-foreground"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {open && <span>{item.title}</span>}
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
+import Projects from "./pages/Projects";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
                       <Routes>
                         <Route path="/" element={<Index />} />
                         <Route path="/results" element={<Results />} />
+                        <Route path="/projects" element={<Projects />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </main>
