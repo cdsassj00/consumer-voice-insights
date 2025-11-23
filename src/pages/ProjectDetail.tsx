@@ -801,21 +801,13 @@ export default function ProjectDetail() {
                   href={result.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded-lg border bg-card hover:bg-accent/60 transition-colors p-3"
+                  className="block rounded-lg border bg-card hover:bg-accent/60 transition-colors p-4"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium line-clamp-1">{result.title}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {result.keyword}
-                        </Badge>
-                        {result.status && (
-                          <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
-                            {result.status}
-                          </Badge>
-                        )}
-                      </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <h4 className="font-medium line-clamp-2 leading-snug">
+                        {result.title}
+                      </h4>
                       {result.snippet && (
                         <p className="text-sm text-muted-foreground line-clamp-2">
                           {result.snippet}
@@ -823,7 +815,7 @@ export default function ProjectDetail() {
                       )}
                     </div>
                     {result.article_published_at && (
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
                         {new Date(result.article_published_at).toLocaleDateString("ko-KR")}
                       </span>
                     )}
