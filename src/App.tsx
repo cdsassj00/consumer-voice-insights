@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import Index from "./pages/Index";
 import Results from "./pages/Results";
 import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -50,6 +51,7 @@ const App = () => (
                         <Route path="/" element={<Index />} />
                         <Route path="/results" element={<Results />} />
                         <Route path="/projects" element={<Projects />} />
+                        <Route path="/projects/:projectId" element={<ProjectDetail />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </main>
