@@ -320,8 +320,37 @@ export default function ProjectDetail() {
       if (response.error) throw response.error;
 
       if (response.data) {
-        setAnalysisData(response.data.analysis);
-        setTrendData(response.data.trendData);
+        // Edge 함수는 순수 분석 JSON을 반환하므로 그대로 저장
+        const analysis = response.data as any;
+        setAnalysisData(analysis);
+
+        // 게시글 원본 게재일 기준 트렌드 데이터 생성 (연속 날짜 + 0 채우기)
+        const dateCounts = new Map<string, number>();
+        let minDate: Date | null = null;
+        let maxDate: Date | null = null;
+
+        (results as SearchResult[]).forEach((r) => {
+          if (!r.article_published_at) return;
+          const d = new Date(r.article_published_at);
+          if (Number.isNaN(d.getTime())) return;
+          const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+
+          dateCounts.set(key, (dateCounts.get(key) || 0) + 1);
+          if (!minDate || d < minDate) minDate = d;
+          if (!maxDate || d > maxDate) maxDate = d;
+        });
+
+        const trend: { date: string; count: number }[] = [];
+        if (minDate && maxDate) {
+          const cur = new Date(minDate);
+          while (cur <= maxDate) {
+            const key = cur.toISOString().slice(0, 10);
+            trend.push({ date: key, count: dateCounts.get(key) || 0 });
+            cur.setDate(cur.getDate() + 1);
+          }
+        }
+
+        setTrendData(trend);
       }
     } catch (error) {
       console.error("Error generating project analysis:", error);
@@ -332,7 +361,6 @@ export default function ProjectDetail() {
       });
     }
   };
-
   const handleAddKeyword = async () => {
     if (!newKeywordInput.trim()) {
       toast({
