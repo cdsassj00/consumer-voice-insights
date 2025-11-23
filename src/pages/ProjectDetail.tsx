@@ -58,8 +58,20 @@ export default function ProjectDetail() {
   const [trendData, setTrendData] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
-  const [naturalLanguageQuery, setNaturalLanguageQuery] = useState("");
-  const [isNaturalSearching, setIsNaturalSearching] = useState(false);
+  const [brandInput, setBrandInput] = useState("");
+  const [selectedKeywordTypes, setSelectedKeywordTypes] = useState<string[]>([]);
+  const [isGuidedSearching, setIsGuidedSearching] = useState(false);
+  
+  const keywordTypes = [
+    { id: "review", label: "후기" },
+    { id: "evaluation", label: "평가" },
+    { id: "experience", label: "체험" },
+    { id: "promotion", label: "프로모션" },
+    { id: "price", label: "가격" },
+    { id: "comparison", label: "비교" },
+    { id: "quality", label: "품질" },
+    { id: "effectiveness", label: "효과" },
+  ];
 
   useEffect(() => {
     if (projectId) {
@@ -333,90 +345,85 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleNaturalLanguageSearch = async () => {
-    if (!naturalLanguageQuery.trim()) {
+  const toggleKeywordType = (typeId: string) => {
+    setSelectedKeywordTypes(prev =>
+      prev.includes(typeId)
+        ? prev.filter(id => id !== typeId)
+        : [...prev, typeId]
+    );
+  };
+
+  const handleGuidedSearch = async () => {
+    if (!brandInput.trim()) {
       toast({
-        title: "검색어 입력 필요",
-        description: "검색하고 싶은 내용을 자연어로 입력해주세요.",
+        title: "브랜드/제품 입력 필요",
+        description: "검색하고 싶은 브랜드나 제품명을 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedKeywordTypes.length === 0) {
+      toast({
+        title: "키워드 타입 선택 필요",
+        description: "최소 1개 이상의 키워드 타입을 선택해주세요.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      setIsNaturalSearching(true);
+      setIsGuidedSearching(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Step 1: Extract keywords
-      toast({
-        title: "키워드 추출 중",
-        description: `"${naturalLanguageQuery}"에서 핵심 키워드를 찾고 있습니다...`,
-      });
+      // 선택된 키워드 타입의 라벨 추출
+      const selectedLabels = keywordTypes
+        .filter(type => selectedKeywordTypes.includes(type.id))
+        .map(type => type.label);
 
-      const { data: extractData, error: extractError } = await supabase.functions.invoke("extract-keywords", {
-        body: { query: naturalLanguageQuery },
-      });
-
-      if (extractError || !extractData?.keywords?.length) {
-        throw new Error("키워드 추출에 실패했습니다.");
-      }
-
-      const extractedKeywords = extractData.keywords;
-      console.log("Extracted keywords:", extractedKeywords);
-
-      // Step 2: Search with extracted keywords
+      // AND 조건으로 검색 쿼리 생성
+      const searchQuery = `${brandInput} AND (${selectedLabels.join(" OR ")})`;
+      
       toast({
         title: "검색 시작",
-        description: `키워드: ${extractedKeywords.join(", ")}`,
+        description: `검색 쿼리: ${searchQuery}`,
       });
 
-      let totalResults = 0;
-      for (const keyword of extractedKeywords) {
-        try {
-          const response = await supabase.functions.invoke("search-and-filter", {
-            body: {
-              keyword: keyword,
-              searchPeriod: "m3",
-              projectId: projectId,
-            },
+      const response = await supabase.functions.invoke("search-and-filter", {
+        body: {
+          keyword: searchQuery,
+          searchPeriod: "m3",
+          projectId: projectId,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      const totalResults = response.data?.savedToDatabase || 0;
+
+      // 검색에 사용된 키워드를 프로젝트에 자동 추가
+      const existingKeyword = keywords.find(k => k.keyword === searchQuery);
+      if (!existingKeyword) {
+        await supabase
+          .from("keywords")
+          .insert({
+            keyword: searchQuery,
+            user_id: user.id,
+            project_id: projectId,
+            source: "guided_search",
+            category: selectedLabels.join(", "),
+            search_count: 1,
+            last_searched_at: new Date().toISOString(),
           });
-
-          if (response.error) {
-            console.error(`Error searching keyword ${keyword}:`, response.error);
-            continue;
-          }
-
-          if (response.data?.savedToDatabase) {
-            totalResults += response.data.savedToDatabase;
-          }
-
-          // 키워드를 프로젝트에 자동 추가 (중복 체크)
-          const existingKeyword = keywords.find(k => k.keyword === keyword);
-          if (!existingKeyword) {
-            await supabase
-              .from("keywords")
-              .insert({
-                keyword: keyword,
-                user_id: user.id,
-                project_id: projectId,
-                source: "ai_extracted",
-                search_count: 1,
-                last_searched_at: new Date().toISOString(),
-              });
-          } else {
-            // 기존 키워드의 검색 횟수 업데이트
-            await supabase
-              .from("keywords")
-              .update({
-                search_count: (existingKeyword.search_count || 0) + 1,
-                last_searched_at: new Date().toISOString(),
-              })
-              .eq("id", existingKeyword.id);
-          }
-        } catch (error) {
-          console.error(`Error processing keyword ${keyword}:`, error);
-        }
+      } else {
+        await supabase
+          .from("keywords")
+          .update({
+            search_count: (existingKeyword.search_count || 0) + 1,
+            last_searched_at: new Date().toISOString(),
+          })
+          .eq("id", existingKeyword.id);
       }
 
       toast({
@@ -424,18 +431,19 @@ export default function ProjectDetail() {
         description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
       });
 
-      setNaturalLanguageQuery("");
+      setBrandInput("");
+      setSelectedKeywordTypes([]);
       fetchProjectData();
       setShowAnalysis(true);
     } catch (error) {
-      console.error("Natural language search error:", error);
+      console.error("Guided search error:", error);
       toast({
         title: "검색 실패",
         description: error instanceof Error ? error.message : "검색 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     } finally {
-      setIsNaturalSearching(false);
+      setIsGuidedSearching(false);
     }
   };
 
@@ -492,44 +500,86 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Natural Language Search */}
+      {/* Guided Search - 2 Step Process */}
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-primary" />
-            자연어 검색
+            가이드 검색
           </CardTitle>
           <CardDescription>
-            검색하고 싶은 내용을 자연어로 입력하면 AI가 키워드를 추출하여 검색합니다
+            브랜드/제품을 입력하고 원하는 정보 타입을 선택하세요
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
+        <CardContent className="space-y-4">
+          {/* Step 1: Brand/Product Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              1단계: 브랜드/제품명 입력
+            </label>
             <Input
-              placeholder="예: 올리브영 브링그린 제품 후기가 궁금해요"
-              value={naturalLanguageQuery}
-              onChange={(e) => setNaturalLanguageQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleNaturalLanguageSearch()}
-              disabled={isNaturalSearching}
-              className="flex-1"
+              placeholder="예: 올리브영 브링그린"
+              value={brandInput}
+              onChange={(e) => setBrandInput(e.target.value)}
+              disabled={isGuidedSearching}
             />
+          </div>
+
+          {/* Step 2: Keyword Type Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              2단계: 정보 타입 선택 (복수 선택 가능)
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {keywordTypes.map((type) => (
+                <Button
+                  key={type.id}
+                  variant={selectedKeywordTypes.includes(type.id) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => toggleKeywordType(type.id)}
+                  disabled={isGuidedSearching}
+                  className="justify-start"
+                >
+                  {type.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div className="flex gap-2 pt-2">
             <Button 
-              onClick={handleNaturalLanguageSearch} 
-              disabled={isNaturalSearching}
-              className="min-w-[100px]"
+              onClick={handleGuidedSearch} 
+              disabled={isGuidedSearching || !brandInput.trim() || selectedKeywordTypes.length === 0}
+              className="flex-1"
             >
-              {isNaturalSearching ? (
+              {isGuidedSearching ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   검색 중...
                 </>
               ) : (
-                "검색"
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  검색 실행
+                </>
               )}
             </Button>
+            {(brandInput || selectedKeywordTypes.length > 0) && !isGuidedSearching && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBrandInput("");
+                  setSelectedKeywordTypes([]);
+                }}
+              >
+                초기화
+              </Button>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            * 추출된 키워드는 자동으로 프로젝트에 추가됩니다
+
+          <p className="text-xs text-muted-foreground">
+            * 브랜드/제품명과 선택한 정보 타입이 AND 조건으로 결합되어 검색됩니다
           </p>
         </CardContent>
       </Card>

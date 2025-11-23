@@ -5,10 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface KeywordExtractionResult {
-  keywords: string[];
-  originalQuery: string;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,21 +24,22 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `당신은 한국어 검색 쿼리에서 핵심 키워드를 추출하는 전문가입니다.
+    const systemPrompt = `당신은 한국어 검색 쿼리를 분석하여 최적의 Google 검색 쿼리를 생성하는 전문가입니다.
 
-사용자의 자연어 질문이나 검색 의도를 분석하여, 실제 검색에 사용할 핵심 키워드를 추출하세요.
+사용자의 자연어 질문을 분석하여:
+1. 핵심 키워드를 추출 (브랜드명, 제품명, 주제어 등)
+2. 키워드 간 관계를 파악하여 적절한 AND/OR 조건을 결정
+3. Google 검색에 최적화된 쿼리 문자열을 생성
 
-규칙:
-1. 브랜드명, 제품명, 서비스명 등 고유명사를 우선 추출
-2. 핵심 주제어를 추출 (예: "신제품", "후기", "가격" 등)
-3. 불필요한 조사, 문법 요소는 제거
-4. 1-3개의 핵심 키워드만 추출
-5. 검색 효율성을 위해 가장 중요한 키워드만 선택
+판단 기준:
+- 여러 브랜드/제품 중 하나를 찾는 경우 → OR 조건 (예: "삼성 OR LG")
+- 특정 브랜드/제품의 특정 속성을 찾는 경우 → AND 조건 (예: "올리브영 AND 신제품 AND 후기")
+- 복합적인 경우 → AND와 OR 혼용 (예: "올리브영 AND (신제품 OR 베스트셀러) AND 후기")
 
 예시:
-- 입력: "올리브영의 신제품에 대한 소비자 반응이 궁금해" → 출력: ["올리브영", "신제품"]
-- 입력: "브링그린 제품 후기 알고싶어" → 출력: ["브링그린", "후기"]
-- 입력: "다이소 가성비 좋은 제품" → 출력: ["다이소", "가성비"]`;
+- 입력: "올리브영 신제품 후기가 궁금해" → searchQuery: "올리브영 AND 신제품 AND 후기", keywords: ["올리브영", "신제품", "후기"]
+- 입력: "브링그린이나 아누아 제품 평가" → searchQuery: "(브링그린 OR 아누아) AND 제품 AND 평가", keywords: ["브링그린", "아누아", "제품", "평가"]
+- 입력: "다이소 가성비 제품" → searchQuery: "다이소 AND 가성비 AND 제품", keywords: ["다이소", "가성비", "제품"]`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -60,26 +57,30 @@ serve(async (req) => {
           {
             type: 'function',
             function: {
-              name: 'extract_keywords',
-              description: '검색 쿼리에서 핵심 키워드를 추출합니다.',
+              name: 'generate_search_query',
+              description: '자연어 입력을 분석하여 Google 검색에 최적화된 쿼리를 생성합니다.',
               parameters: {
                 type: 'object',
                 properties: {
+                  searchQuery: {
+                    type: 'string',
+                    description: 'AND/OR 조건이 포함된 완성된 검색 쿼리 문자열 (예: "올리브영 AND 신제품 AND 후기")'
+                  },
                   keywords: {
                     type: 'array',
                     items: { type: 'string' },
-                    description: '추출된 핵심 키워드 배열 (1-3개)',
+                    description: '추출된 핵심 키워드 배열',
                     minItems: 1,
-                    maxItems: 3
+                    maxItems: 5
                   }
                 },
-                required: ['keywords'],
+                required: ['searchQuery', 'keywords'],
                 additionalProperties: false
               }
             }
           }
         ],
-        tool_choice: { type: 'function', function: { name: 'extract_keywords' } }
+        tool_choice: { type: 'function', function: { name: 'generate_search_query' } }
       }),
     });
 
@@ -93,16 +94,19 @@ serve(async (req) => {
     console.log('Lovable AI response:', JSON.stringify(data));
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== 'extract_keywords') {
-      throw new Error('Failed to extract keywords from AI response');
+    if (!toolCall || toolCall.function.name !== 'generate_search_query') {
+      throw new Error('Failed to generate search query from AI response');
     }
 
     const extractedData = JSON.parse(toolCall.function.arguments);
+    const searchQuery = extractedData.searchQuery || '';
     const keywords = extractedData.keywords || [];
 
+    console.log('Generated search query:', searchQuery);
     console.log('Extracted keywords:', keywords);
 
-    const result: KeywordExtractionResult = {
+    const result = {
+      searchQuery,
       keywords,
       originalQuery: query
     };
@@ -117,6 +121,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
+        searchQuery: '',
         keywords: [],
         originalQuery: ''
       }),
