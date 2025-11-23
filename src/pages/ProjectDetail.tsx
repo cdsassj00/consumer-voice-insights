@@ -86,7 +86,7 @@ export default function ProjectDetail() {
   
   const [project, setProject] = useState<Project | null>(null);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
-  const [availableKeywords, setAvailableKeywords] = useState<Keyword[]>([]);
+  const [newKeywordInput, setNewKeywordInput] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -135,7 +135,7 @@ export default function ProjectDetail() {
       },
       {
         target: '[data-tour="keyword-add"]',
-        content: '다른 프로젝트에서 사용한 키워드를 가져와 재사용할 수 있습니다. 검색은 실행되지 않고 프로젝트에만 할당됩니다.',
+        content: '키워드를 직접 입력하여 프로젝트에 추가할 수 있습니다. 검색은 실행되지 않고 키워드만 저장됩니다.',
         placement: 'bottom',
       },
       {
@@ -187,7 +187,6 @@ export default function ProjectDetail() {
       const [
         { data: projectData, error: projectError },
         { data: keywordsData, error: keywordsError },
-        { data: availableData, error: availableError },
         { data: resultsData, error: resultsError }
       ] = await Promise.all([
         // Fetch project
@@ -203,15 +202,6 @@ export default function ProjectDetail() {
           .from("keywords")
           .select("*")
           .eq("project_id", projectId)
-          .eq("is_active", true)
-          .order("keyword"),
-        
-        // Fetch available keywords (not assigned to any project)
-        supabase
-          .from("keywords")
-          .select("*")
-          .eq("user_id", user.id)
-          .is("project_id", null)
           .eq("is_active", true)
           .order("keyword"),
         
@@ -237,9 +227,6 @@ export default function ProjectDetail() {
       
       if (keywordsError) throw keywordsError;
       setKeywords(keywordsData || []);
-      
-      if (availableError) throw availableError;
-      setAvailableKeywords(availableData || []);
 
       // 분석 데이터는 백그라운드에서 로드 (UI 블로킹 방지)
       if (!resultsError && resultsData && resultsData.length > 0) {
@@ -337,19 +324,46 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleAddKeyword = async (keywordId: string) => {
+  const handleAddKeyword = async () => {
+    if (!newKeywordInput.trim()) {
+      toast({
+        title: "키워드를 입력하세요",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 동일 키워드 중복 체크
+      const duplicate = keywords.find(k => k.keyword === newKeywordInput.trim());
+      if (duplicate) {
+        toast({
+          title: "이미 추가된 키워드입니다",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 즉시 프로젝트에 할당하여 저장
       const { error } = await supabase
         .from("keywords")
-        .update({ project_id: projectId })
-        .eq("id", keywordId);
+        .insert({
+          keyword: newKeywordInput.trim(),
+          user_id: user.id,
+          project_id: projectId,
+          source: "manual",
+          is_active: true,
+        });
 
       if (error) throw error;
 
       toast({
         title: "키워드 추가 완료",
-        description: "프로젝트에 키워드가 추가되었습니다.",
       });
+      setNewKeywordInput("");
       fetchProjectData();
     } catch (error) {
       console.error("Error adding keyword:", error);
@@ -371,7 +385,10 @@ export default function ProjectDetail() {
     try {
       const { error } = await supabase
         .from("keywords")
-        .update({ project_id: null })
+        .update({ 
+          is_active: false,
+          project_id: null
+        })
         .eq("id", keywordToRemove);
 
       if (error) throw error;
@@ -875,65 +892,32 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
 
-        {/* Available Keywords */}
+        {/* Add Keyword */}
         <Card data-tour="keyword-add">
           <CardHeader>
             <CardTitle>키워드 추가</CardTitle>
             <CardDescription>
-              프로젝트에 추가할 키워드를 선택하세요
+              프로젝트에 사용할 검색어를 추가하세요
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {availableKeywords.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Plus className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>추가 가능한 키워드가 없습니다</p>
-                <p className="text-sm mt-1">
-                  키워드 관리에서 새 키워드를 만들어보세요
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Select onValueChange={handleAddKeyword}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="키워드 선택..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableKeywords.map((keyword) => (
-                      <SelectItem key={keyword.id} value={keyword.id}>
-                        {formatKeywordDisplay(keyword.keyword, keyword.display_name)}
-                        {keyword.category && ` (${keyword.category})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <div className="mt-4 space-y-2 max-h-[400px] overflow-y-auto">
-                  {availableKeywords.slice(0, 5).map((keyword) => (
-                    <div
-                      key={keyword.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                      onClick={() => handleAddKeyword(keyword.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatKeywordDisplay(keyword.keyword, keyword.display_name)}</span>
-                        {keyword.category && (
-                          <Badge variant="secondary" className="text-xs">
-                            {keyword.category}
-                          </Badge>
-                        )}
-                      </div>
-                      <Plus className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  ))}
-                  {availableKeywords.length > 5 && (
-                    <p className="text-xs text-muted-foreground text-center py-2">
-                      {availableKeywords.length - 5}개 키워드 더 있음
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            <div className="flex gap-2">
+              <Input
+                placeholder="예: 브랜드명 제품명 후기"
+                value={newKeywordInput}
+                onChange={(e) => setNewKeywordInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddKeyword();
+                }}
+              />
+              <Button onClick={handleAddKeyword}>
+                <Plus className="h-4 w-4 mr-2" />
+                추가
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              * 추가된 키워드는 프로젝트 전체 검색에 사용됩니다
+            </p>
           </CardContent>
         </Card>
       </div>
