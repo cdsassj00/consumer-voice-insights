@@ -8,7 +8,7 @@ const FlowParticles = () => {
   const targetPositions = useRef<Float32Array>();
   const velocities = useRef<Float32Array>();
 
-  const particleCount = 1000;
+  const particleCount = 1500;
 
   const { positions, colors } = useMemo(() => {
     const positions = new Float32Array(particleCount * 3);
@@ -21,7 +21,8 @@ const FlowParticles = () => {
       positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
 
       const color = new THREE.Color();
-      color.setHSL(0.6 + Math.random() * 0.2, 0.7, 0.5 + Math.random() * 0.3);
+      // Brighter, more vibrant colors
+      color.setHSL(0.55 + Math.random() * 0.3, 0.9, 0.6 + Math.random() * 0.2);
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
@@ -51,11 +52,11 @@ const FlowParticles = () => {
       const dy = mousePosition.current.y - positions[i3 + 1];
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // Flow effect towards mouse
-      if (distance < 5) {
-        const force = (5 - distance) / 5;
-        velocities.current[i3] += dx * 0.001 * force;
-        velocities.current[i3 + 1] += dy * 0.001 * force;
+      // Stronger flow effect towards mouse with larger radius
+      if (distance < 8) {
+        const force = (8 - distance) / 8;
+        velocities.current[i3] += dx * 0.003 * force;
+        velocities.current[i3 + 1] += dy * 0.003 * force;
       }
 
       // Apply wave motion
@@ -109,12 +110,13 @@ const FlowParticles = () => {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.15}
+        size={0.25}
         vertexColors
         transparent
-        opacity={0.8}
+        opacity={0.9}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
+        depthWrite={false}
       />
     </points>
   );
