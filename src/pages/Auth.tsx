@@ -13,6 +13,8 @@ import { MessageCircle, TrendingUp, Users } from "lucide-react";
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [mainProduct, setMainProduct] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
@@ -43,10 +45,10 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!email || !password || !companyName || !mainProduct) {
       toast({
         title: "입력 오류",
-        description: "이메일과 비밀번호를 입력해주세요.",
+        description: "모든 필드를 입력해주세요.",
         variant: "destructive",
       });
       return;
@@ -64,16 +66,20 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            company_name: companyName,
+            main_product: mainProduct
+          }
         }
       });
 
-      if (error) {
-        if (error.message.includes("already registered")) {
+      if (authError) {
+        if (authError.message.includes("already registered")) {
           toast({
             title: "회원가입 실패",
             description: "이미 가입된 이메일입니다. 로그인해주세요.",
@@ -82,14 +88,47 @@ const Auth = () => {
         } else {
           toast({
             title: "회원가입 실패",
-            description: error.message,
+            description: authError.message,
             variant: "destructive",
           });
         }
-      } else {
+        return;
+      }
+
+      if (authData.user) {
+        // Create profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            company_name: companyName,
+            main_product: mainProduct
+          });
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
+        }
+
+        // Create first project automatically
+        const { error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            user_id: authData.user.id,
+            name: `${companyName} - ${mainProduct}`,
+            description: `${mainProduct} 제품에 대한 소비자 VOC 분석 프로젝트`,
+            project_type: 'product'
+          });
+
+        if (projectError) {
+          console.error("Project creation error:", projectError);
+        }
+
+        // Mark as first login for onboarding
+        localStorage.setItem('first-login', 'true');
+
         toast({
           title: "회원가입 완료",
-          description: "로그인되었습니다.",
+          description: "첫 프로젝트가 자동으로 생성되었습니다!",
         });
       }
     } catch (error) {
@@ -331,6 +370,24 @@ const Auth = () => {
                 
                 <TabsContent value="signup">
                   <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Input
+                        type="text"
+                        placeholder="회사명"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        type="text"
+                        placeholder="대표 제품명"
+                        value={mainProduct}
+                        onChange={(e) => setMainProduct(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Input
                         type="email"

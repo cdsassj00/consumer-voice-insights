@@ -26,6 +26,15 @@ export default function Projects() {
     fetchProjects();
   }, []);
 
+  useEffect(() => {
+    // Check for first login and auto-redirect to first project
+    const isFirstLogin = localStorage.getItem('first-login');
+    if (isFirstLogin === 'true' && projects.length > 0) {
+      localStorage.removeItem('first-login');
+      navigate(`/projects/${projects[0].id}`);
+    }
+  }, [projects, navigate]);
+
   const fetchProjects = async () => {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();

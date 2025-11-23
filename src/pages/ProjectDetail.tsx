@@ -171,11 +171,15 @@ export default function ProjectDetail() {
   // Auto-run tour for first-time visitors with empty projects
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('project-tour-completed');
+    const isFirstLogin = localStorage.getItem('first-login');
     
-    if (!hasSeenTour && project && keywords.length === 0) {
+    // 첫 로그인이거나 투어를 보지 않았고 키워드가 없는 경우 투어 시작
+    if ((isFirstLogin === 'true' || !hasSeenTour) && project && keywords.length === 0) {
       setTimeout(() => {
         setRunTour(true);
-      }, 1000);
+        // 첫 로그인 플래그 제거
+        localStorage.removeItem('first-login');
+      }, 1500);
     }
   }, [project, keywords]);
 

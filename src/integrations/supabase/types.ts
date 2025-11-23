@@ -221,6 +221,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          main_product: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id: string
+          main_product: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          main_product?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string
