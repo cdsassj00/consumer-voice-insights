@@ -25,8 +25,22 @@ export default function Projects() {
 
   const fetchProjects = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      console.log("🔍 Auth check:", { user: user?.email, userId: user?.id, authError });
+      
+      if (authError || !user) {
+        console.error("❌ No authenticated user:", authError);
+        toast({
+          title: "로그인 필요",
+          description: "로그인 후 이용해주세요.",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      console.log("✅ Fetching projects for user:", user.email);
 
       const { data, error } = await supabase
         .from("projects")
@@ -34,6 +48,8 @@ export default function Projects() {
         .eq("user_id", user.id)
         .eq("is_active", true)
         .order("updated_at", { ascending: false });
+
+      console.log("📦 Projects query result:", { data, error, count: data?.length });
 
       if (error) throw error;
       setProjects(data || []);
