@@ -999,7 +999,7 @@ export default function ProjectDetail() {
           options: {
             arrowColor: '#fff',
             backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.8)',
+            overlayColor: 'rgba(0, 0, 0, 0.5)',
             primaryColor: 'hsl(var(--primary))',
             textColor: 'hsl(var(--foreground))',
             zIndex: 10000,
@@ -1045,7 +1045,7 @@ export default function ProjectDetail() {
           },
           spotlight: {
             borderRadius: 8,
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 0, 0, 0.3)',
           },
         }}
       />
