@@ -292,54 +292,54 @@ const Auth = () => {
       {/* Softer overlay so background animation is clearly visible */}
       <div className="absolute inset-0 bg-gradient-to-br from-background/40 via-background/20 to-background/40 backdrop-blur-[2px] pointer-events-none" />
       
-      <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+      <div className="relative min-h-screen flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8">
+        <div className="w-full max-w-6xl grid md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-center">
           {/* Left side - Marketing content */}
-          <div className="space-y-8 text-center md:text-left">
-            <div className="space-y-4 animate-fade-in">
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent leading-tight">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8 text-center md:text-left">
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4 animate-fade-in">
+              <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent leading-tight">
                 소비자 VOC의
                 <br />새로운 패러다임
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
+              <p className="text-base sm:text-lg md:text-lg lg:text-xl text-muted-foreground max-w-lg mx-auto md:mx-0">
                 이제 더 이상 그럴듯한 이야기가 아닌,
-                <br />
+                <br className="hidden sm:inline" />
                 <span className="text-foreground font-semibold">진짜 소비자의 목소리</span>를 수집하세요
               </p>
             </div>
 
-            <div className="space-y-6 mt-12">
-              <div className="flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                  <MessageCircle className="w-6 h-6" />
+            <div className="hidden md:grid space-y-4 sm:space-y-5 lg:space-y-6 mt-6 sm:mt-8 lg:mt-12">
+              <div className="flex items-start gap-3 sm:gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg bg-primary/10 text-primary flex-shrink-0">
+                  <MessageCircle className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-1">실제 커뮤니티에서 수집</h3>
-                  <p className="text-muted-foreground">
+                  <h3 className="font-semibold text-base sm:text-base lg:text-lg mb-0.5 sm:mb-1">실제 커뮤니티에서 수집</h3>
+                  <p className="text-sm sm:text-sm lg:text-base text-muted-foreground">
                     공식 리뷰 사이트가 아닌, 소비자들이 진솔하게 의견을 나누는 커뮤니티 게시판에서 직접 수집합니다
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
-                  <TrendingUp className="w-6 h-6" />
+              <div className="flex items-start gap-3 sm:gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg bg-blue-500/10 text-blue-500 flex-shrink-0">
+                  <TrendingUp className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-1">AI 기반 심층 분석</h3>
-                  <p className="text-muted-foreground">
+                  <h3 className="font-semibold text-base sm:text-base lg:text-lg mb-0.5 sm:mb-1">AI 기반 심층 분석</h3>
+                  <p className="text-sm sm:text-sm lg:text-base text-muted-foreground">
                     단순 키워드 통계를 넘어, 소비자 페르소나와 경쟁 포지셔닝까지 분석합니다
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
-                  <Users className="w-6 h-6" />
+              <div className="flex items-start gap-3 sm:gap-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg bg-purple-500/10 text-purple-500 flex-shrink-0">
+                  <Users className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-1">진짜 인사이트 발견</h3>
-                  <p className="text-muted-foreground">
+                  <h3 className="font-semibold text-base sm:text-base lg:text-lg mb-0.5 sm:mb-1">진짜 인사이트 발견</h3>
+                  <p className="text-sm sm:text-sm lg:text-base text-muted-foreground">
                     꾸며진 후기가 아닌, 소비자들의 진실된 경험과 니즈를 파악하세요
                   </p>
                 </div>
@@ -349,21 +349,21 @@ const Auth = () => {
 
           {/* Right side - Auth card */}
           <Card className="w-full backdrop-blur-lg bg-card/95 shadow-2xl border-border/50 animate-scale-in">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">소비자 인사이트 플랫폼</CardTitle>
-              <CardDescription>
+            <CardHeader className="text-center px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+              <CardTitle className="text-xl sm:text-2xl">소비자 인사이트 플랫폼</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
                 실제 소비자들의 의견을 분석하세요
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
               <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="signin">로그인</TabsTrigger>
-                  <TabsTrigger value="signup">회원가입</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10">
+                  <TabsTrigger value="signin" className="text-sm sm:text-base">로그인</TabsTrigger>
+                  <TabsTrigger value="signup" className="text-sm sm:text-base">회원가입</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4">
+                  <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
                     <div className="space-y-2">
                       <Input
                         type="email"
@@ -371,6 +371,7 @@ const Auth = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                       />
                     </div>
                     <div className="space-y-2">
@@ -380,21 +381,22 @@ const Auth = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                       />
                     </div>
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full h-10 sm:h-11 text-sm sm:text-base"
                       disabled={isLoading}
                     >
                       {isLoading ? "로그인 중..." : "로그인"}
                     </Button>
 
-                    <div className="relative my-6">
+                    <div className="relative my-4 sm:my-6">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border" />
                       </div>
-                      <div className="relative flex justify-center text-xs uppercase">
+                      <div className="relative flex justify-center text-xs sm:text-xs uppercase">
                         <span className="bg-card px-2 text-muted-foreground">또는</span>
                       </div>
                     </div>
@@ -402,11 +404,11 @@ const Auth = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full"
+                      className="w-full h-10 sm:h-11 text-sm sm:text-base"
                       onClick={handleGoogleSignInClick}
                       disabled={isLoading}
                     >
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                      <svg className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24">
                         <path
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                           fill="#4285F4"
@@ -430,7 +432,7 @@ const Auth = () => {
                 </TabsContent>
                 
                 <TabsContent value="signup">
-                  <form onSubmit={handleSignUp} className="space-y-4">
+                  <form onSubmit={handleSignUp} className="space-y-3 sm:space-y-4">
                     <div className="space-y-2">
                       <Input
                         type="text"
@@ -438,6 +440,7 @@ const Auth = () => {
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         disabled={isLoading}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                       />
                     </div>
                     <div className="space-y-2">
@@ -447,6 +450,7 @@ const Auth = () => {
                         value={mainProduct}
                         onChange={(e) => setMainProduct(e.target.value)}
                         disabled={isLoading}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                       />
                     </div>
                     <div className="space-y-2">
@@ -456,6 +460,7 @@ const Auth = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                       />
                     </div>
                     <div className="space-y-2">
@@ -465,21 +470,22 @@ const Auth = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                       />
                     </div>
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full h-10 sm:h-11 text-sm sm:text-base"
                       disabled={isLoading}
                     >
                       {isLoading ? "가입 중..." : "회원가입"}
                     </Button>
 
-                    <div className="relative my-6">
+                    <div className="relative my-4 sm:my-6">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border" />
                       </div>
-                      <div className="relative flex justify-center text-xs uppercase">
+                      <div className="relative flex justify-center text-xs sm:text-xs uppercase">
                         <span className="bg-card px-2 text-muted-foreground">또는</span>
                       </div>
                     </div>
@@ -487,11 +493,11 @@ const Auth = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full"
+                      className="w-full h-10 sm:h-11 text-sm sm:text-base"
                       onClick={handleGoogleSignInClick}
                       disabled={isLoading}
                     >
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                      <svg className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24">
                         <path
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                           fill="#4285F4"
