@@ -20,8 +20,8 @@ const createParticles = (width: number, height: number, count: number): Particle
     particles.push({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
       baseSize: 1.2 + Math.random() * 1.8,
       noiseOffset: Math.random() * Math.PI * 2,
     });
@@ -98,8 +98,8 @@ export const FlowBackground = () => {
         const p = particles[i];
 
         // 부드러운 부유감 + 미세한 노이즈
-        p.x += p.vx + Math.cos(time * 0.0005 + p.noiseOffset) * 0.3;
-        p.y += p.vy + Math.sin(time * 0.0005 + p.noiseOffset) * 0.3;
+        p.x += p.vx + Math.cos(time * 0.001 + p.noiseOffset) * 0.8;
+        p.y += p.vy + Math.sin(time * 0.001 + p.noiseOffset) * 0.8;
 
         // 화면 밖으로 나가면 다시 반대편에서 등장
         if (p.x < -50) p.x = width + 50;
