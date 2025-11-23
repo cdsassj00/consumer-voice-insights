@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Session } from "@supabase/supabase-js";
 import { FlowBackground } from "@/components/FlowBackground";
 import { MessageCircle, TrendingUp, Users } from "lucide-react";
@@ -17,15 +18,58 @@ const Auth = () => {
   const [mainProduct, setMainProduct] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [showGoogleOnboarding, setShowGoogleOnboarding] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         if (session) {
+          // Check if this is a new Google OAuth user
+          const pendingCompany = sessionStorage.getItem('pending_company_name');
+          const pendingProduct = sessionStorage.getItem('pending_main_product');
+          
+          if (pendingCompany && pendingProduct) {
+            // Create profile and first project for Google OAuth user
+            try {
+              // Check if profile already exists
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              if (!existingProfile) {
+                // Create profile
+                await supabase.from('profiles').insert({
+                  id: session.user.id,
+                  company_name: pendingCompany,
+                  main_product: pendingProduct
+                });
+
+                // Create first project
+                await supabase.from('projects').insert({
+                  user_id: session.user.id,
+                  name: `${pendingCompany} - ${pendingProduct}`,
+                  description: `${pendingProduct} 제품에 대한 소비자 VOC 분석 프로젝트`,
+                  project_type: 'product'
+                });
+
+                // Mark as first login for onboarding
+                localStorage.setItem('first-login', 'true');
+              }
+            } catch (error) {
+              console.error("Error creating profile/project:", error);
+            }
+            
+            // Clear session storage
+            sessionStorage.removeItem('pending_company_name');
+            sessionStorage.removeItem('pending_main_product');
+          }
+          
           navigate("/");
         }
       }
@@ -195,7 +239,24 @@ const Auth = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignInClick = () => {
+    setShowGoogleOnboarding(true);
+  };
+
+  const handleGoogleOnboardingSubmit = async () => {
+    if (!companyName || !mainProduct) {
+      toast({
+        title: "입력 오류",
+        description: "회사명과 대표제품명을 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Store temporarily for use after OAuth callback
+    sessionStorage.setItem('pending_company_name', companyName);
+    sessionStorage.setItem('pending_main_product', mainProduct);
+
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -342,7 +403,7 @@ const Auth = () => {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={handleGoogleSignIn}
+                      onClick={handleGoogleSignInClick}
                       disabled={isLoading}
                     >
                       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -427,7 +488,7 @@ const Auth = () => {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={handleGoogleSignIn}
+                      onClick={handleGoogleSignInClick}
                       disabled={isLoading}
                     >
                       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -457,6 +518,53 @@ const Auth = () => {
           </Card>
         </div>
       </div>
+
+      {/* Google Onboarding Dialog */}
+      <Dialog open={showGoogleOnboarding} onOpenChange={setShowGoogleOnboarding}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>구글로 시작하기</DialogTitle>
+            <DialogDescription>
+              서비스 이용을 위해 회사명과 대표제품명을 입력해주세요
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="회사명"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="대표 제품명"
+                value={mainProduct}
+                onChange={(e) => setMainProduct(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowGoogleOnboarding(false)}
+              disabled={isLoading}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleGoogleOnboardingSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? "처리 중..." : "구글로 계속하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
