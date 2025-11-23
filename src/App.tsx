@@ -8,7 +8,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import Index from "./pages/Index";
-import Results from "./pages/Results";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Auth from "./pages/Auth";
@@ -49,7 +48,6 @@ const App = () => (
                     <main className="flex-1">
                       <Routes>
                         <Route path="/" element={<Index />} />
-                        <Route path="/results" element={<Results />} />
                         <Route path="/projects" element={<Projects />} />
                         <Route path="/projects/:projectId" element={<ProjectDetail />} />
                         <Route path="*" element={<NotFound />} />
