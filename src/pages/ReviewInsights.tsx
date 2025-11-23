@@ -40,6 +40,8 @@ export default function ReviewInsights() {
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [networkInterpretation, setNetworkInterpretation] = useState<string | null>(null);
+  const [isInterpretingNetwork, setIsInterpretingNetwork] = useState(false);
 
   const sampleData = [
     { review: "이 제품 정말 좋아요. 배송도 빠르고 품질도 만족스럽습니다. 다음에도 재구매 의향 있어요.", rating: 5, date: "2025-01-15" },
@@ -272,6 +274,39 @@ export default function ReviewInsights() {
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const interpretNetwork = async () => {
+    if (!analysis || analysis.networkGraph.nodes.length === 0) return;
+    
+    setIsInterpretingNetwork(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-review-insights', {
+        body: { 
+          reviews: [],
+          networkGraph: analysis.networkGraph,
+          interpretNetwork: true
+        }
+      });
+
+      if (error) throw error;
+
+      setNetworkInterpretation(data.networkInterpretation || "네트워크 해석을 생성할 수 없습니다.");
+      
+      toast({
+        title: "네트워크 해석 완료",
+        description: "키워드 관계 분석이 완료되었습니다.",
+      });
+    } catch (error) {
+      console.error("Network interpretation error:", error);
+      toast({
+        title: "해석 실패",
+        description: "네트워크 해석 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInterpretingNetwork(false);
     }
   };
 
@@ -558,19 +593,38 @@ export default function ReviewInsights() {
           {analysis.networkGraph.nodes.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Network className="w-4 h-4" />
-                  키워드 네트워크 (드래그 가능)
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  노드를 드래그하여 이동할 수 있습니다. 마우스를 올리면 강조됩니다.
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Network className="w-4 h-4" />
+                      키워드 네트워크 (드래그 가능)
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-1">
+                      노드를 드래그하여 이동할 수 있습니다. 마우스를 올리면 강조됩니다.
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={interpretNetwork} 
+                    disabled={isInterpretingNetwork}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {isInterpretingNetwork ? "분석 중..." : "🤖 AI 해석"}
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <InteractiveNetworkGraph 
                   nodes={analysis.networkGraph.nodes}
                   edges={analysis.networkGraph.edges}
                 />
+                {networkInterpretation && (
+                  <Alert className="bg-purple-50 border-purple-200">
+                    <AlertDescription className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {networkInterpretation}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           )}

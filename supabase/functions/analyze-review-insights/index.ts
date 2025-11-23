@@ -12,7 +12,59 @@ serve(async (req) => {
   }
 
   try {
-    const { reviews } = await req.json();
+    const { reviews, networkGraph, interpretNetwork } = await req.json();
+    
+    if (interpretNetwork && networkGraph) {
+      // Network graph interpretation mode
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) {
+        throw new Error('LOVABLE_API_KEY is not configured');
+      }
+
+      const prompt = `다음은 소비자 리뷰에서 추출된 키워드 네트워크 그래프입니다:
+
+노드 (키워드):
+${networkGraph.nodes.map((n: any) => `- ${n.label}`).join('\n')}
+
+연결 관계:
+${networkGraph.edges.map((e: any) => `- ${e.source} ↔ ${e.target}`).join('\n')}
+
+이 키워드 네트워크를 분석하여 다음을 설명해주세요:
+1. 가장 중요한 키워드와 그 이유
+2. 키워드 간 연결이 의미하는 소비자 관심사
+3. 네트워크에서 발견되는 주요 패턴이나 클러스터
+4. 비즈니스 인사이트 및 실행 가능한 제안
+
+간결하고 명확하게 2-3문단으로 작성해주세요.`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: '당신은 소비자 인사이트 분석 전문가입니다.' },
+            { role: 'user', content: prompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI gateway error:', response.status, errorText);
+        throw new Error('AI 해석 요청 실패');
+      }
+
+      const data = await response.json();
+      const networkInterpretation = data.choices[0].message.content;
+
+      return new Response(JSON.stringify({ networkInterpretation }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     if (!reviews || reviews.length === 0) {
       throw new Error("리뷰 데이터가 없습니다.");
