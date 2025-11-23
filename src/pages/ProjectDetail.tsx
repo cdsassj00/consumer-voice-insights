@@ -362,6 +362,41 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleDeleteResult = async (resultId: string) => {
+    if (!confirm('이 게시글을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) {
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('search_results')
+        .delete()
+        .eq('id', resultId);
+      
+      if (error) throw error;
+      
+      // 로컬 state에서 제거
+      setSearchResults(prev => prev.filter(r => r.id !== resultId));
+      
+      toast({
+        title: "삭제 완료",
+        description: "게시글이 삭제되었습니다.",
+      });
+      
+      // 분석 데이터 새로고침 (결과 수 변경 반영)
+      if (showAnalysis) {
+        await loadProjectAnalysis();
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "삭제 실패",
+        description: "게시글 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleProjectSearch = async () => {
     if (keywords.length === 0) {
       toast({
@@ -934,11 +969,25 @@ export default function ProjectDetail() {
                         </p>
                       )}
                     </div>
-                    {result.article_published_at && (
-                      <span className="text-xs text-muted-foreground whitespace-nowrap mt-1">
-                        {new Date(result.article_published_at).toLocaleDateString("ko-KR")}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {result.article_published_at && (
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(result.article_published_at).toLocaleDateString("ko-KR")}
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteResult(result.id);
+                        }}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </a>
               ))}
