@@ -86,8 +86,8 @@ const Index = () => {
   const handleQuickSearch = async () => {
     if (!quickSearchKeyword.trim()) {
       toast({
-        title: "키워드 입력 필요",
-        description: "검색할 키워드를 입력해주세요.",
+        title: "검색어 입력 필요",
+        description: "검색하고 싶은 내용을 자연어로 입력해주세요.",
         variant: "destructive",
       });
       return;
@@ -99,14 +99,33 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("인증되지 않은 사용자입니다.");
 
+      // Step 1: Extract keywords from natural language query
       toast({
-        title: "빠른 검색 시작",
-        description: `"${quickSearchKeyword}" 검색 중...`,
+        title: "키워드 추출 중",
+        description: `"${quickSearchKeyword}"에서 핵심 키워드를 찾고 있습니다...`,
       });
 
+      const { data: extractData, error: extractError } = await supabase.functions.invoke("extract-keywords", {
+        body: { query: quickSearchKeyword },
+      });
+
+      if (extractError || !extractData?.keywords?.length) {
+        throw new Error("키워드 추출에 실패했습니다.");
+      }
+
+      const extractedKeywords = extractData.keywords;
+      console.log("Extracted keywords:", extractedKeywords);
+
+      // Step 2: Search with extracted keywords
+      toast({
+        title: "검색 시작",
+        description: `키워드: ${extractedKeywords.join(", ")}`,
+      });
+
+      const searchKeyword = extractedKeywords.join(" ");
       const { data, error } = await supabase.functions.invoke("search-and-filter", {
         body: {
-          keyword: quickSearchKeyword,
+          keyword: searchKeyword,
           searchPeriod: "m3",
         },
       });
@@ -152,7 +171,7 @@ const Index = () => {
           <CardContent>
             <div className="flex gap-2">
               <Input
-                placeholder="검색할 키워드를 입력하세요"
+                placeholder="예: 올리브영 신제품 후기가 궁금해요"
                 value={quickSearchKeyword}
                 onChange={(e) => setQuickSearchKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
@@ -167,7 +186,7 @@ const Index = () => {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              * 맛보기 검색은 최근 3개월 데이터를 대상으로 합니다
+              * 자연어로 입력하면 AI가 핵심 키워드를 추출하여 검색합니다 (최근 3개월 데이터)
             </p>
           </CardContent>
         </Card>
