@@ -50,12 +50,11 @@ export const ArticleModal = ({ isOpen, onClose, articles, title }: ArticleModalP
                 {article.snippet && (
                   <p className="text-sm text-muted-foreground mb-2">{article.snippet}</p>
                 )}
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">{article.keyword}</Badge>
-                  {article.article_published_at && (
-                    <span>{new Date(article.article_published_at).toLocaleDateString('ko-KR')}</span>
-                  )}
-                </div>
+                {article.article_published_at && (
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(article.article_published_at).toLocaleDateString('ko-KR')}
+                  </div>
+                )}
               </div>
             ))}
           </div>
