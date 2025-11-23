@@ -109,23 +109,24 @@ const Index = () => {
         body: { query: quickSearchKeyword },
       });
 
-      if (extractError || !extractData?.keywords?.length) {
-        throw new Error("키워드 추출에 실패했습니다.");
+      if (extractError || !extractData?.searchQuery) {
+        throw new Error("검색 쿼리 생성에 실패했습니다.");
       }
 
-      const extractedKeywords = extractData.keywords;
+      const searchQuery = extractData.searchQuery;
+      const extractedKeywords = extractData.keywords || [];
+      console.log("Generated search query:", searchQuery);
       console.log("Extracted keywords:", extractedKeywords);
 
-      // Step 2: Search with extracted keywords
+      // Step 2: Search with generated query
       toast({
         title: "검색 시작",
-        description: `키워드: ${extractedKeywords.join(", ")}`,
+        description: `검색 쿼리: ${searchQuery}`,
       });
 
-      const searchKeyword = extractedKeywords.join(" ");
       const { data, error } = await supabase.functions.invoke("search-and-filter", {
         body: {
-          keyword: searchKeyword,
+          keyword: searchQuery,
           searchPeriod: "m3",
         },
       });
@@ -186,7 +187,7 @@ const Index = () => {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              * 자연어로 입력하면 AI가 핵심 키워드를 추출하여 검색합니다 (최근 3개월 데이터)
+              * 자연어로 입력하면 AI가 최적의 검색 쿼리를 생성합니다 (최근 3개월 데이터)
             </p>
           </CardContent>
         </Card>
