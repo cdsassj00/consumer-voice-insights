@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,10 @@ interface Keyword {
   search_count: number;
   last_searched_at: string | null;
   source: string;
+  project_id: string | null;
 }
+
+type Project = Tables<"projects">;
 
 const CATEGORY_LABELS: Record<string, string> = {
   brand: '브랜드',
@@ -36,41 +40,43 @@ export const KeywordManager = ({ userId }: { userId: string }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchKeywords();
-  }, []);
+    fetchProjects();
+  }, [userId]);
 
   const fetchKeywords = async () => {
-    const { data, error } = await supabase
-      .from('keywords')
-      .select('*')
-      .eq('is_active', true)
-      .order('last_searched_at', { ascending: false, nullsFirst: false });
+    try {
+      const { data, error } = await supabase
+        .from("keywords")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .order("last_searched_at", { ascending: false });
 
-    if (error) {
-      console.error('Error fetching keywords:', error);
-      return;
+      if (error) throw error;
+      setKeywords(data || []);
+    } catch (error) {
+      console.error("Error fetching keywords:", error);
     }
-
-    setKeywords((data as Keyword[]) || []);
   };
 
-  const toggleFavorite = async (id: string, currentFavorite: boolean) => {
-    const { error } = await supabase
-      .from('keywords')
-      .update({ is_favorite: !currentFavorite })
-      .eq('id', id);
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .order("name");
 
-    if (error) {
-      toast({
-        title: "오류",
-        description: "즐겨찾기 설정 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    } else {
-      await fetchKeywords();
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
     }
   };
 
@@ -158,118 +164,200 @@ export const KeywordManager = ({ userId }: { userId: string }) => {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('keywords')
-      .delete()
-      .eq('id', id);
+    if (!confirm("이 키워드를 삭제하시겠습니까?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("keywords")
+        .update({ is_active: false })
+        .eq("id", id);
 
-    if (error) {
+      if (error) throw error;
+      setKeywords(keywords.filter((k) => k.id !== id));
       toast({
-        title: "삭제 실패",
-        description: "키워드 삭제 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "삭제 완료",
+        title: "키워드 삭제 완료",
         description: "키워드가 삭제되었습니다.",
       });
-      await fetchKeywords();
+    } catch (error) {
+      console.error("Error deleting keyword:", error);
+      toast({
+        title: "키워드 삭제 실패",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProjectAssign = async (keywordId: string, projectId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("keywords")
+        .update({ project_id: projectId === "none" ? null : projectId })
+        .eq("id", keywordId);
+
+      if (error) throw error;
+
+      setKeywords(keywords.map((k) =>
+        k.id === keywordId ? { ...k, project_id: projectId === "none" ? null : projectId } : k
+      ));
+
+      toast({
+        title: "프로젝트 할당 완료",
+        description: projectId === "none" ? "프로젝트 할당이 해제되었습니다." : "프로젝트에 할당되었습니다.",
+      });
+    } catch (error) {
+      console.error("Error assigning project:", error);
+      toast({
+        title: "프로젝트 할당 실패",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleFavorite = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("keywords")
+        .update({ is_favorite: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setKeywords(keywords.map((k) => (k.id === id ? { ...k, is_favorite: !currentStatus } : k)));
+      toast({
+        title: currentStatus ? "즐겨찾기 해제" : "즐겨찾기 추가",
+        description: currentStatus ? "즐겨찾기에서 제거되었습니다." : "즐겨찾기에 추가되었습니다.",
+      });
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast({
+        title: "즐겨찾기 변경 실패",
+        variant: "destructive",
+      });
     }
   };
 
   const favoriteKeywords = keywords.filter(k => k.is_favorite);
   const searchHistory = keywords.filter(k => k.search_count > 0);
 
-  const renderKeywordItem = (kw: Keyword, showStats: boolean = true) => (
-    <div
-      key={kw.id}
-      className="flex items-center gap-2 p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
-    >
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => toggleFavorite(kw.id, kw.is_favorite)}
-        className="shrink-0"
+  const renderKeywordItem = (kw: Keyword, showStats: boolean = true) => {
+    const assignedProject = projects.find((p) => p.id === kw.project_id);
+    
+    return (
+      <div
+        key={kw.id}
+        className="flex items-center gap-2 p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
       >
-        <Star className={`w-4 h-4 ${kw.is_favorite ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'}`} />
-      </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => toggleFavorite(kw.id, kw.is_favorite)}
+          className="shrink-0"
+        >
+          <Star className={`w-4 h-4 ${kw.is_favorite ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'}`} />
+        </Button>
 
-      {kw.category && (
-        <Badge variant="secondary" className="shrink-0">
-          {CATEGORY_LABELS[kw.category] || kw.category}
-        </Badge>
-      )}
-      
-      {editingId === kw.id ? (
-        <Input
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          className="flex-1"
-          autoFocus
-        />
-      ) : (
-        <div className="flex-1">
-          <span className="font-medium">{kw.keyword}</span>
-          {showStats && kw.search_count > 0 && (
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <BarChart className="w-3 h-3" />
-                검색 {kw.search_count}회
-              </span>
-              {kw.last_searched_at && (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatDistanceToNow(new Date(kw.last_searched_at), { 
-                    addSuffix: true, 
-                    locale: ko 
-                  })}
-                </span>
+        <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+          {kw.category && (
+            <Badge variant="secondary" className="shrink-0">
+              {CATEGORY_LABELS[kw.category] || kw.category}
+            </Badge>
+          )}
+          
+          {editingId === kw.id ? (
+            <Input
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="flex-1"
+              autoFocus
+            />
+          ) : (
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium">{kw.keyword}</span>
+                {assignedProject && (
+                  <Badge variant="outline" className="text-xs">
+                    {assignedProject.name}
+                  </Badge>
+                )}
+              </div>
+              {showStats && kw.search_count > 0 && (
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <BarChart className="w-3 h-3" />
+                    검색 {kw.search_count}회
+                  </span>
+                  {kw.last_searched_at && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDistanceToNow(new Date(kw.last_searched_at), { 
+                        addSuffix: true, 
+                        locale: ko 
+                      })}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
         </div>
-      )}
 
-      <div className="flex gap-1">
-        {editingId === kw.id ? (
-          <>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleSaveEdit(kw.id)}
-            >
-              <Save className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setEditingId(null)}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleEdit(kw.id, kw.keyword)}
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleDelete(kw.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </>
-        )}
+        <Select
+          value={kw.project_id || "none"}
+          onValueChange={(value) => handleProjectAssign(kw.id, value)}
+        >
+          <SelectTrigger className="w-[140px] shrink-0">
+            <SelectValue placeholder="프로젝트" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">프로젝트 없음</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-1 shrink-0">
+          {editingId === kw.id ? (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleSaveEdit(kw.id)}
+              >
+                <Save className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditingId(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleEdit(kw.id, kw.keyword)}
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleDelete(kw.id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <Card>
