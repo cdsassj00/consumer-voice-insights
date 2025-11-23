@@ -98,6 +98,7 @@ export default function ProjectDetail() {
   const [productServiceInput, setProductServiceInput] = useState("");
   const [selectedKeywordTypes, setSelectedKeywordTypes] = useState<string[]>([]);
   const [isGuidedSearching, setIsGuidedSearching] = useState(false);
+  const [searchPeriod, setSearchPeriod] = useState("m3");
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState<Step[]>([]);
   
@@ -478,7 +479,7 @@ export default function ProjectDetail() {
           const response = await supabase.functions.invoke("search-and-filter", {
             body: {
               keyword: keyword.keyword,
-              searchPeriod: "m3", // 기본 3개월
+              searchPeriod: searchPeriod,
               projectId: projectId,
             },
           });
@@ -814,7 +815,22 @@ export default function ProjectDetail() {
           </CardHeader>
           <CardContent>
             {/* Project-wide Search Button */}
-            <div className="mb-4 pb-4 border-b">
+            <div className="mb-4 pb-4 border-b space-y-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">검색 기간</label>
+                <Select value={searchPeriod} onValueChange={setSearchPeriod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="d7">최근 7일</SelectItem>
+                    <SelectItem value="m1">최근 1개월</SelectItem>
+                    <SelectItem value="m3">최근 3개월</SelectItem>
+                    <SelectItem value="m6">최근 6개월</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <Button 
                 data-tour="project-search"
                 onClick={handleProjectSearch} 
@@ -825,8 +841,8 @@ export default function ProjectDetail() {
                 <Search className="mr-2 h-4 w-4" />
                 프로젝트 전체 검색
               </Button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                할당된 모든 키워드로 검색을 실행합니다
+              <p className="text-xs text-muted-foreground text-center">
+                할당된 모든 키워드로 선택된 기간의 데이터를 검색합니다
               </p>
             </div>
             

@@ -23,7 +23,7 @@ serve(async (req) => {
       .map((r: any, idx: number) => `[${idx + 1}] 제목: ${r.title}\n내용: ${r.snippet}`)
       .join('\n\n');
 
-    const systemPrompt = `You are a Korean consumer review analysis expert. Analyze the given post titles and snippets and return ONLY a valid JSON object (no markdown, no explanations, just pure JSON) with this exact structure:
+    const systemPrompt = `You are a Korean consumer review analysis expert with deep business intelligence capabilities. Analyze the given post titles and snippets to extract actionable business insights beyond basic statistics. Return ONLY a valid JSON object (no markdown, no explanations, just pure JSON) with this exact structure:
 
 {
   "sentiment": {
@@ -47,6 +47,43 @@ serve(async (req) => {
   "keyOpinions": [
     {"opinion": "주요 의견", "sentiment": "긍정|부정", "frequency": <number>}
   ],
+  "consumerPersonas": [
+    {
+      "persona": "페르소나명 (예: 가성비 추구형 20대)",
+      "characteristics": "주요 특징 및 행동 패턴",
+      "painPoints": ["불만점1", "불만점2"],
+      "desires": ["욕구1", "욕구2"]
+    }
+  ],
+  "competitiveInsights": {
+    "competitorMentions": [
+      {"brand": "경쟁 브랜드명", "context": "언급 맥락", "sentiment": "긍정|부정|중립"}
+    ],
+    "comparativeAdvantages": ["우리의 강점1", "우리의 강점2"],
+    "competitiveThreats": ["경쟁사 강점1", "경쟁사 강점2"]
+  },
+  "purchaseDrivers": {
+    "motivations": ["구매 동기1", "구매 동기2"],
+    "barriers": ["구매 장벽1", "구매 장벽2"],
+    "decisionFactors": [
+      {"factor": "결정 요인", "importance": "높음|중간|낮음"}
+    ]
+  },
+  "actionableRecommendations": [
+    {
+      "priority": "높음|중간|낮음",
+      "category": "제품개선|마케팅|고객서비스|가격전략",
+      "recommendation": "구체적인 실행 제안",
+      "expectedImpact": "예상되는 비즈니스 효과"
+    }
+  ],
+  "emergingTrends": [
+    {
+      "trend": "트렌드명",
+      "description": "트렌드 설명",
+      "businessImplication": "비즈니스 시사점"
+    }
+  ],
   "networkGraph": {
     "nodes": [
       {"id": "keyword", "value": <number 1-10>, "category": "category"}
@@ -62,8 +99,15 @@ serve(async (req) => {
     "trendDirection": "상승|하락|안정",
     "growthRate": <number>
   },
-  "summary": "전체 요약 문장"
+  "summary": "전체 요약 문장 (비즈니스 인사이트 중심)"
 }
+
+ANALYSIS GUIDELINES:
+- Extract consumer personas from writing style, concerns, and behavior patterns
+- Identify competitive brand mentions and positioning insights
+- Focus on actionable business recommendations, not just statistics
+- Highlight emerging trends that could impact business strategy
+- Prioritize insights that drive real business decisions
 
 IMPORTANT: Return ONLY valid JSON. No markdown code blocks, no additional text.`;
 
