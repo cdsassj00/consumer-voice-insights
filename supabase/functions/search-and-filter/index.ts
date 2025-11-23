@@ -73,6 +73,16 @@ Deno.serve(async (req) => {
 
     console.log(`Starting search for keyword: ${keyword}, user: ${user.id}`);
 
+    // Check for duplicate URLs in database first
+    const { data: existingUrls } = await supabase
+      .from('search_results')
+      .select('url')
+      .eq('user_id', user.id)
+      .eq('keyword', keyword);
+
+    const existingUrlSet = new Set(existingUrls?.map(r => r.url) || []);
+    console.log(`Found ${existingUrlSet.size} existing URLs for this keyword`);
+
     // Get API keys from environment
     const googleApiKey = Deno.env.get('GOOGLE_SEARCH_API_KEY');
     const searchEngineId = Deno.env.get('GOOGLE_SEARCH_ENGINE_ID');
@@ -112,26 +122,55 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Helper function to extract published date from Google Search result
+    // Helper function to extract published date from Google Search result or snippet
     const extractPublishedDate = (item: GoogleSearchResult): string | null => {
-      if (!item.pagemap?.metatags?.[0]) return null;
-      
-      const metatag = item.pagemap.metatags[0];
-      const dateString = 
-        metatag['article:published_time'] ||
-        metatag['og:article:published_time'] ||
-        metatag['datePublished'] ||
-        metatag['dc.date.issued'] ||
-        metatag['sailthru.date'];
-      
-      if (dateString) {
-        try {
-          const date = new Date(dateString);
-          if (!isNaN(date.getTime())) {
-            return date.toISOString();
+      // Try metatags first
+      if (item.pagemap?.metatags?.[0]) {
+        const metatag = item.pagemap.metatags[0];
+        const dateString = 
+          metatag['article:published_time'] ||
+          metatag['og:article:published_time'] ||
+          metatag['datePublished'] ||
+          metatag['dc.date.issued'] ||
+          metatag['sailthru.date'];
+        
+        if (dateString) {
+          try {
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+              return date.toISOString();
+            }
+          } catch (e) {
+            console.error('Error parsing date from metatag:', dateString, e);
           }
-        } catch (e) {
-          console.error('Error parsing date:', dateString, e);
+        }
+      }
+      
+      // Fallback: Try to extract date from snippet (Korean format)
+      if (item.snippet) {
+        // Match patterns like "2025. 1. 15.", "2024년 12월 30일", "2024-01-15" etc
+        const koreanDatePattern = /(\d{4})[년.\s]+(\d{1,2})[월.\s]+(\d{1,2})/;
+        const isoDatePattern = /(\d{4})-(\d{1,2})-(\d{1,2})/;
+        
+        let match = item.snippet.match(koreanDatePattern) || item.snippet.match(isoDatePattern);
+        
+        if (match) {
+          try {
+            const year = parseInt(match[1]);
+            const month = parseInt(match[2]);
+            const day = parseInt(match[3]);
+            
+            // Validate date components
+            if (year >= 2000 && year <= 2030 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+              const date = new Date(year, month - 1, day);
+              if (!isNaN(date.getTime())) {
+                console.log(`Extracted date from snippet for "${item.title}": ${date.toISOString()}`);
+                return date.toISOString();
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing date from snippet:', e);
+          }
         }
       }
       
@@ -200,6 +239,12 @@ JSON 형식으로만 답변하세요:
         console.log(`Result for "${item.title}": ${decision.isValid ? 'VALID' : 'INVALID'} - ${decision.reason}`);
 
         if (decision.isValid) {
+          // Skip if URL already exists
+          if (existingUrlSet.has(item.link)) {
+            console.log(`Skipping duplicate URL: ${item.link}`);
+            continue;
+          }
+          
           const publishedDate = extractPublishedDate(item);
           validResults.push({
             url: item.link,

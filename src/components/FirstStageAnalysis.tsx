@@ -78,13 +78,21 @@ interface FirstStageAnalysisProps {
 }
 
 export function FirstStageAnalysis({ analysis, trendData, searchResults }: FirstStageAnalysisProps) {
-  const [dateRange, setDateRange] = useState<[number, number]>([0, trendData.length - 1]);
+  const [dateRange, setDateRange] = useState<[number, number]>([0, Math.max(0, trendData.length - 1)]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedArticles, setSelectedArticles] = useState<SearchResult[]>([]);
   const [modalTitle, setModalTitle] = useState("");
 
+  // trendData가 변경될 때 dateRange 업데이트
+  useState(() => {
+    if (trendData.length > 0) {
+      setDateRange([0, trendData.length - 1]);
+    }
+  });
+
   // 슬라이더로 필터링된 트렌드 데이터
   const filteredTrendData = useMemo(() => {
+    if (trendData.length === 0) return [];
     return trendData.slice(dateRange[0], dateRange[1] + 1);
   }, [trendData, dateRange]);
 
@@ -486,33 +494,35 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
       )}
 
       {/* 수집 트렌드 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            게시글 원본 게재일 트렌드
-          </CardTitle>
-          <CardDescription>원본 게재일 기준 날짜별 게시글 현황</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {trendData[dateRange[0]]?.date}
-              </span>
-              <Slider
-                value={dateRange}
-                onValueChange={(value) => setDateRange(value as [number, number])}
-                max={trendData.length - 1}
-                min={0}
-                step={1}
-                minStepsBetweenThumbs={1}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {trendData[dateRange[1]]?.date}
-              </span>
-            </div>
+      {trendData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              게시글 원본 게재일 트렌드
+            </CardTitle>
+            <CardDescription>원본 게재일 기준 날짜별 게시글 현황</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {trendData[dateRange[0]]?.date || '시작'}
+                </span>
+                <Slider
+                  value={dateRange}
+                  onValueChange={(value) => setDateRange(value as [number, number])}
+                  max={Math.max(0, trendData.length - 1)}
+                  min={0}
+                  step={1}
+                  minStepsBetweenThumbs={1}
+                  className="flex-1"
+                  disabled={trendData.length <= 1}
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {trendData[dateRange[1]]?.date || '종료'}
+                </span>
+              </div>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={filteredTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -554,6 +564,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* 주요 키워드 */}
       <Card>
