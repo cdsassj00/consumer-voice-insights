@@ -16,11 +16,13 @@ import {
   Clock,
   TrendingUp,
   Loader2,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FirstStageAnalysis } from "@/components/FirstStageAnalysis";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDistanceToNow } from "date-fns";
@@ -850,13 +852,16 @@ export default function ProjectDetail() {
           </div>
 
           {/* Step 3: Keyword Type Selection */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="text-sm font-medium">
               3단계: 정보 타입 선택 <span className="text-muted-foreground font-normal">(선택사항)</span>
             </label>
-            <p className="text-xs text-muted-foreground mb-2">
-              ※ 선택하지 않으면 AI가 자동으로 다양한 키워드를 생성합니다
-            </p>
+            <Alert className="bg-primary/5 border-primary/20">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                선택하지 않으면 AI가 자동으로 다양한 키워드를 생성합니다
+              </AlertDescription>
+            </Alert>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {keywordTypes.map((type) => (
                 <Button
