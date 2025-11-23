@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { TrendingUp, MessageSquare, Hash, Calendar, Network, ShoppingBag, Star, TrendingDown, Activity } from "lucide-react";
 import { ArticleModal } from "./ArticleModal";
-import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, Tooltip as ChartTooltip, Legend as ChartLegend, ChartOptions } from 'chart.js';
+import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, Tooltip as ChartTooltip, Legend as ChartLegend } from 'chart.js';
 import { Pie, Bar as BarChartJS, Line as LineChartJS, Radar as RadarChartJS } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, ChartTooltip, ChartLegend);
@@ -115,7 +115,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
     'hsl(210, 100%, 60%)',
   ];
 
-  const commonChartOptions: ChartOptions<any> = {
+  const commonChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     onClick: (event: any, elements: any[]) => {
