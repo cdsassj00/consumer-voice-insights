@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FolderKanban, Edit, Trash2 } from "lucide-react";
+import { Plus, FolderKanban, Edit, Trash2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
 import type { Tables } from "@/integrations/supabase/types";
@@ -11,6 +12,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Project = Tables<"projects">;
 
 export default function Projects() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -126,7 +128,11 @@ export default function Projects() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={project.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate(`/projects/${project.id}`)}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -150,15 +156,31 @@ export default function Projects() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleEdit(project)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/projects/${project.id}`);
+                    }}
                   >
-                    <Edit className="mr-2 h-4 w-4" />
-                    수정
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    상세보기
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(project.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(project);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project.id);
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
