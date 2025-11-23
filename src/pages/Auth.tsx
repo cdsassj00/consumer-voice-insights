@@ -349,6 +349,17 @@ const Auth = () => {
 
           {/* Right side - Auth card */}
           <Card className="w-full backdrop-blur-lg bg-card/95 shadow-2xl border-border/50 animate-scale-in">
+            {/* Mobile-only header */}
+            <div className="md:hidden px-4 pt-5 pb-3 text-center space-y-2 border-b border-border/50">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
+                소비자 VOC의 새로운 패러다임
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                진짜 소비자의 커뮤니티 토론에서<br />
+                솔직한 의견을 수집합니다
+              </p>
+            </div>
+            
             <CardHeader className="text-center px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
               <CardTitle className="text-xl sm:text-2xl">소비자 인사이트 플랫폼</CardTitle>
               <CardDescription className="text-sm sm:text-base">
