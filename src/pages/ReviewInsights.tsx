@@ -483,12 +483,12 @@ export default function ReviewInsights() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={analysis.topics.slice(0, 5)} layout="horizontal">
+                  <BarChart data={analysis.topics.slice(0, 5)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 15% 92%)" opacity={0.3} />
-                    <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} />
-                    <YAxis type="category" dataKey="topic" width={80} tick={{ fontSize: 11, fill: 'hsl(240 8% 50%)' }} />
+                    <XAxis dataKey="topic" tick={{ fontSize: 11, fill: 'hsl(240 8% 50%)' }} interval={0} angle={-20} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 12, fill: 'hsl(240 8% 50%)' }} allowDecimals={false} />
                     <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
-                    <Bar dataKey="count" fill={chartColors[0]} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="count" fill={chartColors[0]} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
