@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { results } = await req.json();
+    const { searchResults } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -19,7 +19,7 @@ serve(async (req) => {
     }
 
     // 제목과 스니펫만 추출하여 LLM에 전달
-    const combinedText = results
+    const combinedText = searchResults
       .map((r: any, idx: number) => `[${idx + 1}] 제목: ${r.title}\n내용: ${r.snippet}`)
       .join('\n\n');
 
