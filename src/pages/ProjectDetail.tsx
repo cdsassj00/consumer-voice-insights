@@ -619,7 +619,7 @@ export default function ProjectDetail() {
       
       toast({
         title: "검색 시작",
-        description: `검색 쿼리: ${searchQuery}`,
+        description: `${displayName} 검색을 시작합니다`,
       });
 
       const response = await supabase.functions.invoke("search-and-filter", {
