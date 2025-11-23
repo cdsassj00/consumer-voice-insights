@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
+import ReviewInsights from "./pages/ReviewInsights";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +57,7 @@ const MainLayout = () => {
               <Route path="/" element={<Index />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:projectId" element={<ProjectDetail />} />
+              <Route path="/review-insights" element={<ReviewInsights />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

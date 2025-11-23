@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, Settings } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Settings, FileBarChart2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -14,9 +14,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
+const vocCollectionItems = [
   { title: "대시보드", url: "/", icon: LayoutDashboard },
   { title: "프로젝트 관리", url: "/projects", icon: FolderKanban },
+];
+
+const aiToolsItems = [
+  { title: "리뷰 인사이트 분석기", url: "/review-insights", icon: FileBarChart2 },
 ];
 
 const settingsItems = [
@@ -45,14 +49,39 @@ export function AppSidebar() {
           )}
         </div>
 
-        {/* Main Navigation */}
+        {/* VOC 실시간 수집 */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/60">
-            메인
+            📊 VOC 실시간 수집
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {vocCollectionItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink
+                      to={item.url}
+                      className="hover:bg-sidebar-accent text-sidebar-foreground"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {open && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* AI 분석 도구 */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/60">
+            🤖 AI 분석 도구
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {aiToolsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink

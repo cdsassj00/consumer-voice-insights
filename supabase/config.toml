@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.generate-product-keywords]
 verify_jwt = true
+
+[functions.analyze-review-insights]
+verify_jwt = true
