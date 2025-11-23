@@ -1,174 +1,162 @@
-import { useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useEffect, useRef } from "react";
 
-const FlowParticles = () => {
-  const pointsRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const mousePosition = useRef({ x: 0, y: 0 });
-  const mouseTrail = useRef<Array<{ x: number; y: number; time: number }>>([]);
+// 브랜드 보라색 계열 플로우 파티클 배경 (Canvas 2D 버전)
+// - 기본적으로 은은하게 항상 보이고
+// - 마우스를 움직이면 그 경로를 따라 파티클이 밝게 따라오는 효과
 
-  const particleCount = 2000;
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  baseSize: number;
+  noiseOffset: number;
+}
 
-  const { positions, colors, sizes, opacities } = useMemo(() => {
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const sizes = new Float32Array(particleCount);
-    const opacities = new Float32Array(particleCount);
+const createParticles = (width: number, height: number, count: number): Particle[] => {
+  const particles: Particle[] = [];
 
-    for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 20;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 5;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      baseSize: 1.2 + Math.random() * 1.8,
+      noiseOffset: Math.random() * Math.PI * 2,
+    });
+  }
 
-      const color = new THREE.Color();
-      // 보라색 계열 (HSL: 0.75-0.85)
-      color.setHSL(0.75 + Math.random() * 0.1, 0.85, 0.6 + Math.random() * 0.2);
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
-
-      sizes[i] = 0.2 + Math.random() * 0.15;
-      opacities[i] = 0; // Start hidden
-    }
-
-    return { positions, colors, sizes, opacities };
-  }, []);
-
-  useFrame((state) => {
-    if (!pointsRef.current) return;
-
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    const opacities = pointsRef.current.geometry.attributes.opacity.array as Float32Array;
-    const time = state.clock.getElapsedTime();
-
-    // 마우스 주변과 무관하게 기본적으로 은은하게 보이도록 하고,
-    // 마우스 근처에서는 더 강하게 빛나도록 처리
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
-      const px = positions[i3];
-      const py = positions[i3 + 1];
-
-      // 기본 숨쉬기 느낌의 투명도 (항상 어느 정도는 보이도록)
-      const baseOpacity = 0.35 + 0.15 * Math.sin(time * 0.8 + i * 0.3);
-
-      // 마우스와의 거리 계산
-      const dx = mousePosition.current.x - px;
-      const dy = mousePosition.current.y - py;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // 마우스 주변 반경 안에 있는 입자들만 강하게 활성화
-      const radius = 6;
-      let targetOpacity = baseOpacity;
-
-      if (distance < radius) {
-        const intensity = 1 - distance / radius; // 가까울수록 더 밝게
-        targetOpacity += 0.5 * intensity;
-      }
-
-      // 0~1 범위로 클램프
-      targetOpacity = Math.max(0, Math.min(1, targetOpacity));
-
-      // 부드럽게 숨쉬는 듯한 페이드 인/아웃
-      opacities[i] += (targetOpacity - opacities[i]) * 0.2;
-
-      // 전체에 아주 약한 부유감 부여
-      positions[i3 + 2] = Math.sin(time * 0.4 + i * 0.05) * 0.4;
-    }
-
-    pointsRef.current.geometry.attributes.opacity.needsUpdate = true;
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
-  });
-
-  // Handle mouse movement - once on mount
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      mousePosition.current.x = ((event.clientX / window.innerWidth) * 2 - 1) * 10;
-      mousePosition.current.y = (-(event.clientY / window.innerHeight) * 2 + 1) * 10;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, []);
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={particleCount}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          count={particleCount}
-          array={colors}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={particleCount}
-          array={sizes}
-          itemSize={1}
-        />
-        <bufferAttribute
-          attach="attributes-opacity"
-          count={particleCount}
-          array={opacities}
-          itemSize={1}
-        />
-      </bufferGeometry>
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={`
-          attribute float size;
-          attribute vec3 color;
-          attribute float opacity;
-          varying vec3 vColor;
-          varying float vOpacity;
-          
-          void main() {
-            vColor = color;
-            vOpacity = opacity;
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 100.0 * (1.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `}
-        fragmentShader={`
-          varying vec3 vColor;
-          varying float vOpacity;
-          
-          void main() {
-            float dist = length(gl_PointCoord - vec2(0.5));
-            if (dist > 0.5) discard;
-            
-            float alpha = (1.0 - dist * 2.0) * vOpacity;
-            gl_FragColor = vec4(vColor, alpha);
-          }
-        `}
-        transparent
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </points>
-  );
+  return particles;
 };
 
 export const FlowBackground = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const mouseRef = useRef({ x: 0, y: 0, active: false });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    let particles = createParticles(canvas.clientWidth, canvas.clientHeight, 260);
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseRef.current.x = event.clientX - rect.left;
+      mouseRef.current.y = event.clientY - rect.top;
+      mouseRef.current.active = true;
+    };
+
+    const handleMouseLeave = () => {
+      mouseRef.current.active = false;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseleave", handleMouseLeave);
+
+    let lastTime = 0;
+
+    const render = (time: number) => {
+      const delta = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      // 사이즈가 바뀌었으면 파티클 재생성
+      if (particles.length === 0 || width === 0 || height === 0) {
+        particles = createParticles(width, height, 260);
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      // 약한 보라색 그라디언트 베이스 (아이덴티티 강조)
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, "hsla(262, 88%, 72%, 0.14)");
+      gradient.addColorStop(1, "hsla(270, 90%, 65%, 0.08)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      const mouse = mouseRef.current;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        // 부드러운 부유감 + 미세한 노이즈
+        p.x += p.vx + Math.cos(time * 0.0005 + p.noiseOffset) * 0.3;
+        p.y += p.vy + Math.sin(time * 0.0005 + p.noiseOffset) * 0.3;
+
+        // 화면 밖으로 나가면 다시 반대편에서 등장
+        if (p.x < -50) p.x = width + 50;
+        if (p.x > width + 50) p.x = -50;
+        if (p.y < -50) p.y = height + 50;
+        if (p.y > height + 50) p.y = -50;
+
+        // 마우스와의 거리 계산 (플로우 효과)
+        let highlight = 0;
+        if (mouse.active) {
+          const dx = mouse.x - p.x;
+          const dy = mouse.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const radius = 180; // 마우스 영향 반경
+
+          if (dist < radius) {
+            const t = 1 - dist / radius;
+            highlight = t * t; // 중심부에서 더 강하게
+
+            // 마우스 방향으로 약간 끌려가는 느낌
+            p.x += (dx / dist || 0) * 12 * delta * t;
+            p.y += (dy / dist || 0) * 12 * delta * t;
+          }
+        }
+
+        const pulse = 0.4 + 0.3 * Math.sin(time * 0.0015 + p.noiseOffset * 2);
+        const alpha = Math.min(1, 0.2 + pulse * 0.4 + highlight * 0.8);
+        const size = p.baseSize + highlight * 2.2;
+
+        ctx.beginPath();
+        ctx.fillStyle = `hsla(266, 89%, 68%, ${alpha.toFixed(3)})`;
+        ctx.shadowColor = "hsla(266, 89%, 72%, 0.55)";
+        ctx.shadowBlur = 14 + highlight * 26;
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.shadowBlur = 0;
+
+      animationRef.current = requestAnimationFrame(render);
+    };
+
+    animationRef.current = requestAnimationFrame(render);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 -z-10">
-      <Canvas
-        camera={{ position: [0, 0, 8], fov: 75 }}
-        style={{ background: 'transparent' }}
-      >
-        <ambientLight intensity={0.3} />
-        <FlowParticles />
-      </Canvas>
+    <div className="fixed inset-0 -z-10 pointer-events-none">
+      <canvas ref={canvasRef} className="w-full h-full" aria-hidden="true" />
     </div>
   );
 };
