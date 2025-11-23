@@ -6,8 +6,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, Download, Shield, Lock, FileText, BarChart3, Network } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import * as XLSX from 'xlsx';
+import InteractiveNetworkGraph from "@/components/InteractiveNetworkGraph";
 
 interface ReviewData {
   review: string;
@@ -19,7 +20,9 @@ interface AnalysisResult {
   topics: { topic: string; count: number }[];
   keywords: { word: string; frequency: number }[];
   personas: string[];
-  networkGraph: { nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] };
+  networkGraph: { nodes: { id: string; label: string; x?: number; y?: number }[]; edges: { source: string; target: string }[] };
+  ratingDistribution: { rating: number; count: number }[];
+  dateDistribution: { date: string; count: number }[];
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -93,6 +96,29 @@ export default function ReviewInsights() {
         .slice(0, 20)
         .map(([word, frequency]) => ({ word, frequency }));
 
+      // 평점 분포 계산
+      const ratingCounts: Record<number, number> = {};
+      reviews.forEach(r => {
+        if (r.rating) {
+          ratingCounts[r.rating] = (ratingCounts[r.rating] || 0) + 1;
+        }
+      });
+      const ratingDistribution = [1, 2, 3, 4, 5].map(rating => ({
+        rating,
+        count: ratingCounts[rating] || 0
+      }));
+
+      // 날짜별 분포 계산
+      const dateCounts: Record<string, number> = {};
+      reviews.forEach(r => {
+        if (r.date) {
+          dateCounts[r.date] = (dateCounts[r.date] || 0) + 1;
+        }
+      });
+      const dateDistribution = Object.entries(dateCounts)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, count]) => ({ date, count }));
+
       const { data, error } = await supabase.functions.invoke('analyze-review-insights', {
         body: { reviews: reviewTexts.slice(0, 100) }
       });
@@ -105,6 +131,8 @@ export default function ReviewInsights() {
         keywords: topKeywords,
         personas: data.personas || [],
         networkGraph: data.networkGraph || { nodes: [], edges: [] },
+        ratingDistribution,
+        dateDistribution,
       });
 
       toast({
@@ -191,12 +219,37 @@ export default function ReviewInsights() {
 
       if (error) throw error;
 
+      // 평점 분포 계산
+      const ratingCounts: Record<number, number> = {};
+      sampleData.forEach(r => {
+        if (r.rating) {
+          ratingCounts[r.rating] = (ratingCounts[r.rating] || 0) + 1;
+        }
+      });
+      const ratingDistribution = [1, 2, 3, 4, 5].map(rating => ({
+        rating,
+        count: ratingCounts[rating] || 0
+      }));
+
+      // 날짜별 분포 계산
+      const dateCounts: Record<string, number> = {};
+      sampleData.forEach(r => {
+        if (r.date) {
+          dateCounts[r.date] = (dateCounts[r.date] || 0) + 1;
+        }
+      });
+      const dateDistribution = Object.entries(dateCounts)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, count]) => ({ date, count }));
+
       setAnalysis({
         sentiment: data.sentiment || [],
         topics: data.topics || [],
         keywords: topKeywords,
         personas: data.personas || [],
         networkGraph: data.networkGraph || { nodes: [], edges: [] },
+        ratingDistribution,
+        dateDistribution,
       });
 
       toast({
@@ -366,68 +419,108 @@ export default function ReviewInsights() {
             </Button>
           </div>
 
-          {/* Sentiment Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle>감성 분석</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={analysis.sentiment}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ label, percent }) => `${label}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="count"
-                    nameKey="label"
-                  >
-                    {analysis.sentiment.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {/* 2x2 Grid for main charts */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Sentiment Analysis */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">감성 분석</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={analysis.sentiment}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={70}
+                      fill="#8884d8"
+                      dataKey="count"
+                      nameKey="label"
+                    >
+                      {analysis.sentiment.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-          {/* Topics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>주요 토픽</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analysis.topics}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="topic" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" name="언급 횟수" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            {/* Rating Distribution */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">평점 분포</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={analysis.ratingDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="rating" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-          {/* Word Cloud / Keywords */}
+            {/* Topics */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">주요 토픽</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={analysis.topics.slice(0, 5)} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="topic" width={80} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Date Trend */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">시간별 트렌드</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={analysis.dateDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Keyword Cloud - Full Width */}
           <Card>
-            <CardHeader>
-              <CardTitle>주요 키워드</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">주요 키워드</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 min-h-[120px]">
                 {analysis.keywords.slice(0, 30).map((kw, idx) => (
                   <Badge
                     key={idx}
                     variant="secondary"
+                    className="transition-all hover:scale-110 cursor-default"
                     style={{ 
-                      fontSize: `${Math.min(10 + kw.frequency / 2, 20)}px`,
-                      opacity: 0.6 + (kw.frequency / analysis.keywords[0].frequency) * 0.4
+                      fontSize: `${Math.min(11 + kw.frequency / 2, 18)}px`,
+                      opacity: 0.6 + (kw.frequency / analysis.keywords[0].frequency) * 0.4,
+                      padding: "4px 10px"
                     }}
                   >
                     {kw.word} ({kw.frequency})
@@ -439,81 +532,37 @@ export default function ReviewInsights() {
 
           {/* Consumer Personas */}
           <Card>
-            <CardHeader>
-              <CardTitle>소비자 페르소나</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">소비자 페르소나</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="grid md:grid-cols-2 gap-3">
                 {analysis.personas.map((persona, idx) => (
-                  <div key={idx} className="bg-muted/30 p-4 rounded-lg">
-                    <p className="text-sm">{persona}</p>
+                  <div key={idx} className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                    <p className="text-sm leading-relaxed">{persona}</p>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Network Graph */}
+          {/* Interactive Network Graph */}
           {analysis.networkGraph.nodes.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Network className="w-5 h-5" />
-                  키워드 네트워크
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Network className="w-4 h-4" />
+                  키워드 네트워크 (드래그 가능)
                 </CardTitle>
+                <CardDescription className="text-xs">
+                  노드를 드래그하여 이동할 수 있습니다. 마우스를 올리면 강조됩니다.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <svg width="100%" height="400" className="border rounded-lg bg-muted/20">
-                  {/* Simple node-link visualization */}
-                  {analysis.networkGraph.edges.map((edge, idx) => {
-                    const sourceNode = analysis.networkGraph.nodes.find(n => n.id === edge.source);
-                    const targetNode = analysis.networkGraph.nodes.find(n => n.id === edge.target);
-                    const sourceIdx = analysis.networkGraph.nodes.indexOf(sourceNode!);
-                    const targetIdx = analysis.networkGraph.nodes.indexOf(targetNode!);
-                    const x1 = 100 + (sourceIdx % 5) * 150;
-                    const y1 = 100 + Math.floor(sourceIdx / 5) * 100;
-                    const x2 = 100 + (targetIdx % 5) * 150;
-                    const y2 = 100 + Math.floor(targetIdx / 5) * 100;
-                    
-                    return (
-                      <line
-                        key={idx}
-                        x1={x1}
-                        y1={y1}
-                        x2={x2}
-                        y2={y2}
-                        stroke="hsl(var(--border))"
-                        strokeWidth="2"
-                      />
-                    );
-                  })}
-                  {analysis.networkGraph.nodes.map((node, idx) => {
-                    const x = 100 + (idx % 5) * 150;
-                    const y = 100 + Math.floor(idx / 5) * 100;
-                    
-                    return (
-                      <g key={node.id}>
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r="30"
-                          fill="hsl(var(--primary))"
-                          opacity="0.8"
-                        />
-                        <text
-                          x={x}
-                          y={y}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill="hsl(var(--primary-foreground))"
-                          fontSize="12"
-                        >
-                          {node.label}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
+                <InteractiveNetworkGraph 
+                  nodes={analysis.networkGraph.nodes}
+                  edges={analysis.networkGraph.edges}
+                />
               </CardContent>
             </Card>
           )}
