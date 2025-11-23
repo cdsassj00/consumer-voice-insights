@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { subDays, subMonths, startOfDay, endOfDay, format } from "date-fns";
+import { AdvancedInsightsPanel } from "@/components/AdvancedInsightsPanel";
 
 interface AnalysisResult {
   id: string;
@@ -64,6 +65,8 @@ const Results = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [advancedInsights, setAdvancedInsights] = useState<any | null>(null);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -92,6 +95,9 @@ const Results = () => {
   useEffect(() => {
     if (session) {
       fetchResults();
+      if (keyword) {
+        fetchAdvancedInsights();
+      }
     }
   }, [keyword, session]);
 
@@ -172,6 +178,66 @@ const Results = () => {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAdvancedInsights = async () => {
+    if (!keyword) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('advanced_insights')
+        .select('*')
+        .eq('keyword', keyword)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        if (error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          console.error('Error fetching advanced insights:', error);
+        }
+        return;
+      }
+
+      setAdvancedInsights(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const generateAdvancedInsights = async () => {
+    if (!keyword || !session?.user) return;
+    
+    setIsGeneratingInsights(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-advanced-insights', {
+        body: {
+          keyword: keyword,
+          userId: session.user.id
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "인사이트 생성 완료",
+        description: "고급 비즈니스 인사이트가 생성되었습니다.",
+      });
+
+      // Refresh insights
+      await fetchAdvancedInsights();
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      toast({
+        title: "인사이트 생성 실패",
+        description: "고급 인사이트 생성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingInsights(false);
     }
   };
 
@@ -526,6 +592,15 @@ const Results = () => {
             </Card>
           </div>
         </div>
+
+        {/* Advanced Insights - Premium Feature */}
+        {keyword && (
+          <AdvancedInsightsPanel 
+            insights={advancedInsights}
+            isLoading={isGeneratingInsights}
+            onGenerate={generateAdvancedInsights}
+          />
+        )}
 
         {/* Charts */}
         <div className="grid md:grid-cols-2 gap-6">
