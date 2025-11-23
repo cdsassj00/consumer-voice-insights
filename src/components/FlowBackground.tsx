@@ -22,7 +22,8 @@ const FlowParticles = () => {
       positions[i * 3 + 2] = (Math.random() - 0.5) * 5;
 
       const color = new THREE.Color();
-      color.setHSL(0.55 + Math.random() * 0.3, 0.95, 0.65);
+      // 보라색 계열 (HSL: 0.75-0.85)
+      color.setHSL(0.75 + Math.random() * 0.1, 0.85, 0.6 + Math.random() * 0.2);
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
