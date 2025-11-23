@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Tables } from "@/integrations/supabase/types";
+import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 
 type Project = Tables<"projects">;
 
@@ -20,20 +21,52 @@ export default function Projects() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [runTour, setRunTour] = useState(false);
   const { toast } = useToast();
+
+  const tourSteps: Step[] = [
+    {
+      target: '[data-tour="first-project"]',
+      content: '자동으로 생성된 첫 프로젝트입니다. 클릭하여 들어가면 키워드 설정과 검색을 시작할 수 있습니다.',
+      disableBeacon: true,
+      placement: 'bottom',
+    },
+  ];
 
   useEffect(() => {
     fetchProjects();
   }, []);
 
   useEffect(() => {
-    // Check for first login and auto-redirect to first project
+    // Check for first login
     const isFirstLogin = localStorage.getItem('first-login');
+    
     if (isFirstLogin === 'true' && projects.length > 0) {
-      localStorage.removeItem('first-login');
-      navigate(`/projects/${projects[0].id}`);
+      // Show quick tour before auto-redirecting
+      setTimeout(() => {
+        setRunTour(true);
+      }, 800);
+      
+      // Auto-redirect after tour or timeout
+      setTimeout(() => {
+        localStorage.removeItem('first-login');
+        navigate(`/projects/${projects[0].id}`);
+      }, 4000);
     }
   }, [projects, navigate]);
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status } = data;
+    
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      setRunTour(false);
+      // Redirect immediately when tour is skipped/finished
+      if (projects.length > 0) {
+        localStorage.removeItem('first-login');
+        navigate(`/projects/${projects[0].id}`);
+      }
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -132,6 +165,31 @@ export default function Projects() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        continuous
+        showSkipButton
+        showProgress
+        callback={handleJoyrideCallback}
+        locale={{
+          back: '이전',
+          close: '닫기',
+          last: '완료',
+          next: '다음',
+          skip: '건너뛰기',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'hsl(266, 89%, 68%)',
+            zIndex: 10000,
+          },
+          overlay: {
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          },
+        }}
+      />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -163,11 +221,12 @@ export default function Projects() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {projects.map((project, index) => (
             <Card 
               key={project.id} 
               className="hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => navigate(`/projects/${project.id}`)}
+              data-tour={index === 0 ? "first-project" : undefined}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
