@@ -25,15 +25,41 @@ interface AnalysisResult {
   dateDistribution: { date: string; count: number }[];
 }
 
-const CHART_COLORS = {
-  chart1: 'hsl(260 80% 65%)',
-  chart2: 'hsl(200 90% 55%)',
-  chart3: 'hsl(280 70% 60%)',
-  chart4: 'hsl(160 70% 50%)',
-  chart5: 'hsl(340 75% 58%)',
-};
+const chartColors = [
+  'hsl(266, 89%, 68%)',
+  'hsl(210, 100%, 60%)',
+  'hsl(142, 76%, 36%)',
+  'hsl(38, 92%, 50%)',
+  'hsl(0, 84%, 60%)',
+];
 
-const COLORS = [CHART_COLORS.chart1, CHART_COLORS.chart2, CHART_COLORS.chart3, CHART_COLORS.chart4, CHART_COLORS.chart5];
+const commonChartOptions: ChartOptions<any> = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: true,
+      position: 'bottom',
+      labels: {
+        font: { size: 11, family: 'Noto Sans KR' },
+        padding: 10,
+        usePointStyle: true,
+        color: 'hsl(var(--foreground))'
+      }
+    },
+    tooltip: {
+      backgroundColor: 'hsl(var(--background))',
+      titleColor: 'hsl(var(--foreground))',
+      bodyColor: 'hsl(var(--muted-foreground))',
+      borderColor: 'hsl(var(--border))',
+      borderWidth: 1,
+      cornerRadius: 8,
+      padding: 12,
+      titleFont: { size: 13, weight: 'bold', family: 'Noto Sans KR' },
+      bodyFont: { size: 12, family: 'Noto Sans KR' }
+    }
+  }
+};
 
 export default function ReviewInsights() {
   const { toast } = useToast();
@@ -106,7 +132,7 @@ export default function ReviewInsights() {
 
       // 평점 분포 계산
       const ratingCounts: Record<number, number> = {};
-      reviews.forEach(r => {
+      sampleData.forEach(r => {
         if (r.rating) {
           ratingCounts[r.rating] = (ratingCounts[r.rating] || 0) + 1;
         }
@@ -118,7 +144,7 @@ export default function ReviewInsights() {
 
       // 날짜별 분포 계산
       const dateCounts: Record<string, number> = {};
-      reviews.forEach(r => {
+      sampleData.forEach(r => {
         if (r.date) {
           dateCounts[r.date] = (dateCounts[r.date] || 0) + 1;
         }
@@ -229,7 +255,7 @@ export default function ReviewInsights() {
 
       // 평점 분포 계산
       const ratingCounts: Record<number, number> = {};
-      sampleData.forEach(r => {
+      reviews.forEach(r => {
         if (r.rating) {
           ratingCounts[r.rating] = (ratingCounts[r.rating] || 0) + 1;
         }
@@ -241,7 +267,7 @@ export default function ReviewInsights() {
 
       // 날짜별 분포 계산
       const dateCounts: Record<string, number> = {};
-      sampleData.forEach(r => {
+      reviews.forEach(r => {
         if (r.date) {
           dateCounts[r.date] = (dateCounts[r.date] || 0) + 1;
         }
@@ -435,26 +461,20 @@ export default function ReviewInsights() {
                 <CardTitle className="text-base">감성 분석</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={analysis.sentiment}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={70}
-                      fill="#8884d8"
-                      dataKey="count"
-                      nameKey="label"
-                    >
-                      {analysis.sentiment.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="h-[220px]">
+                  <Pie 
+                    data={{
+                      labels: analysis.sentiment.map(d => d.label),
+                      datasets: [{
+                        data: analysis.sentiment.map(d => d.count),
+                        backgroundColor: chartColors,
+                        borderWidth: 2,
+                        borderColor: 'hsl(var(--background))'
+                      }]
+                    }}
+                    options={commonChartOptions}
+                  />
+                </div>
               </CardContent>
             </Card>
 
