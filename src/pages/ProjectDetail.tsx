@@ -425,7 +425,7 @@ export default function ProjectDetail() {
             user_id: user.id,
             project_id: projectId,
             source: "guided_search",
-            category: selectedLabels.join(", "),
+            category: null,
             search_count: 1,
             last_searched_at: new Date().toISOString(),
           });

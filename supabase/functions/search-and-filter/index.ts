@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { keyword, searchPeriod = 'm3' } = await req.json();
+    const { keyword, searchPeriod = 'm3', projectId = null } = await req.json();
     
     if (!keyword) {
       return new Response(
@@ -234,7 +234,8 @@ JSON 형식으로만 답변하세요:
         status: 'pending',
         user_id: user.id,
         search_period: searchPeriod,
-        article_published_at: result.article_published_at || null
+        article_published_at: result.article_published_at || null,
+        project_id: projectId
       })
     );
 
