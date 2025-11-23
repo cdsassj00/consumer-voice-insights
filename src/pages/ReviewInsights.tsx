@@ -3,12 +3,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Download, Shield, Lock, FileText, BarChart3, Network } from "lucide-react";
+import { Upload, Download, Shield, Lock, FileText, BarChart3, Network, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import * as XLSX from 'xlsx';
 import InteractiveNetworkGraph from "@/components/InteractiveNetworkGraph";
+
+const parseMarkdown = (text: string) => {
+  // Parse bold (**text** or __text__)
+  let parsed = text.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-purple-900">$1</strong>');
+  parsed = parsed.replace(/__(.+?)__/g, '<strong class="font-bold text-purple-900">$1</strong>');
+  
+  // Parse numbered lists (1. text)
+  parsed = parsed.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="flex gap-2 my-2"><span class="font-semibold text-purple-700 min-w-[24px]">$1.</span><span class="flex-1">$2</span></div>');
+  
+  // Parse bullet points (- text or * text)
+  parsed = parsed.replace(/^[-*]\s+(.+)$/gm, '<div class="flex gap-2 my-2"><span class="text-purple-500">•</span><span class="flex-1">$1</span></div>');
+  
+  // Parse line breaks
+  parsed = parsed.replace(/\n\n/g, '<div class="h-4"></div>');
+  parsed = parsed.replace(/\n/g, '<br/>');
+  
+  return parsed;
+};
 
 interface ReviewData {
   review: string;
@@ -619,11 +637,16 @@ export default function ReviewInsights() {
                   edges={analysis.networkGraph.edges}
                 />
                 {networkInterpretation && (
-                  <Alert className="bg-purple-50 border-purple-200">
-                    <AlertDescription className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {networkInterpretation}
-                    </AlertDescription>
-                  </Alert>
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200 rounded-lg p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      <h4 className="font-semibold text-purple-900">AI 네트워크 해석</h4>
+                    </div>
+                    <div 
+                      className="text-sm leading-relaxed text-gray-800"
+                      dangerouslySetInnerHTML={{ __html: parseMarkdown(networkInterpretation) }}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>
