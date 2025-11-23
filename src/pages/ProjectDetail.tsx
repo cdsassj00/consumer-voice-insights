@@ -681,7 +681,10 @@ export default function ProjectDetail() {
           },
         });
 
-        if (generateResponse.error) throw generateResponse.error;
+        if (generateResponse.error) {
+          console.error("Keyword generation error:", generateResponse.error);
+          throw new Error(`키워드 생성 실패: ${generateResponse.error.message}`);
+        }
 
         const generatedKeywords = generateResponse.data?.keywords || [];
         
@@ -689,33 +692,25 @@ export default function ProjectDetail() {
           throw new Error("키워드 생성에 실패했습니다.");
         }
 
+        console.log(`Generated ${generatedKeywords.length} keywords:`, generatedKeywords);
+
         toast({
           title: "키워드 생성 완료",
           description: `${generatedKeywords.length}개의 키워드로 검색을 시작합니다.`,
         });
 
         let totalResults = 0;
+        const insertedKeywords = [];
 
         // 생성된 각 키워드로 검색 및 등록
         for (const kw of generatedKeywords) {
           try {
-            // 검색 실행
-            const searchResponse = await supabase.functions.invoke("search-and-filter", {
-              body: {
-                keyword: kw.searchQuery,
-                searchPeriod: "m3",
-                projectId: projectId,
-              },
-            });
-
-            if (!searchResponse.error) {
-              totalResults += searchResponse.data?.savedToDatabase || 0;
-            }
-
-            // 키워드를 프로젝트에 등록
+            console.log(`Processing keyword: ${kw.displayName}`);
+            
+            // 키워드를 먼저 프로젝트에 등록
             const existingKeyword = keywords.find(k => k.keyword === kw.searchQuery);
             if (!existingKeyword) {
-              await supabase
+              const { data: insertedKeyword, error: insertError } = await supabase
                 .from("keywords")
                 .insert({
                   keyword: kw.searchQuery,
@@ -726,16 +721,44 @@ export default function ProjectDetail() {
                   category: null,
                   search_count: 1,
                   last_searched_at: new Date().toISOString(),
-                });
+                })
+                .select()
+                .single();
+              
+              if (insertError) {
+                console.error(`Error inserting keyword ${kw.displayName}:`, insertError);
+              } else {
+                console.log(`Successfully inserted keyword: ${kw.displayName}`);
+                insertedKeywords.push(insertedKeyword);
+              }
+            }
+            
+            // 검색 실행
+            const searchResponse = await supabase.functions.invoke("search-and-filter", {
+              body: {
+                keyword: kw.searchQuery,
+                searchPeriod: "m3",
+                projectId: projectId,
+              },
+            });
+
+            if (searchResponse.error) {
+              console.error(`Search error for ${kw.displayName}:`, searchResponse.error);
+            } else {
+              const resultCount = searchResponse.data?.savedToDatabase || 0;
+              totalResults += resultCount;
+              console.log(`Search completed for ${kw.displayName}: ${resultCount} results`);
             }
           } catch (error) {
             console.error(`Error processing keyword ${kw.displayName}:`, error);
           }
         }
 
+        console.log(`Total keywords inserted: ${insertedKeywords.length}, Total results: ${totalResults}`);
+
         toast({
           title: "검색 완료",
-          description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
+          description: `${insertedKeywords.length}개의 키워드가 추가되고 총 ${totalResults}개의 결과가 수집되었습니다.`,
         });
 
         setCompanyBrandInput("");
