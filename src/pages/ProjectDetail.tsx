@@ -398,6 +398,9 @@ export default function ProjectDetail() {
       );
       const searchQuery = searchQueries.join(" OR ");
       
+      // 사람이 읽기 쉬운 표시명 생성
+      const displayName = `${companyBrandInput} ${productServiceInput} (${selectedLabels.join("/")})`;
+      
       toast({
         title: "검색 시작",
         description: `검색 쿼리: ${searchQuery}`,
@@ -422,6 +425,7 @@ export default function ProjectDetail() {
           .from("keywords")
           .insert({
             keyword: searchQuery,
+            display_name: displayName,
             user_id: user.id,
             project_id: projectId,
             source: "guided_search",
@@ -499,10 +503,6 @@ export default function ProjectDetail() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleProjectSearch} size="lg">
-            <Search className="mr-2 h-4 w-4" />
-            프로젝트 전체 검색
-          </Button>
           <Button
             variant="outline"
             size="lg"
@@ -626,6 +626,22 @@ export default function ProjectDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Project-wide Search Button */}
+            <div className="mb-4 pb-4 border-b">
+              <Button 
+                onClick={handleProjectSearch} 
+                className="w-full"
+                size="lg"
+                disabled={keywords.length === 0}
+              >
+                <Search className="mr-2 h-4 w-4" />
+                프로젝트 전체 검색
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                할당된 모든 키워드로 검색을 실행합니다
+              </p>
+            </div>
+            
             {keywords.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Star className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -641,7 +657,7 @@ export default function ProjectDetail() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{keyword.keyword}</span>
+                        <span className="font-medium">{keyword.display_name || keyword.keyword}</span>
                         {keyword.category && (
                           <Badge variant="secondary" className="text-xs">
                             {keyword.category}
@@ -709,7 +725,7 @@ export default function ProjectDetail() {
                   <SelectContent>
                     {availableKeywords.map((keyword) => (
                       <SelectItem key={keyword.id} value={keyword.id}>
-                        {keyword.keyword}
+                        {keyword.display_name || keyword.keyword}
                         {keyword.category && ` (${keyword.category})`}
                       </SelectItem>
                     ))}
@@ -724,7 +740,7 @@ export default function ProjectDetail() {
                       onClick={() => handleAddKeyword(keyword.id)}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{keyword.keyword}</span>
+                        <span className="font-medium">{keyword.display_name || keyword.keyword}</span>
                         {keyword.category && (
                           <Badge variant="secondary" className="text-xs">
                             {keyword.category}

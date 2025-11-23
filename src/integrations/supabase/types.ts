@@ -169,6 +169,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          display_name: string | null
           id: string
           is_active: boolean | null
           is_favorite: boolean | null
@@ -183,6 +184,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          display_name?: string | null
           id?: string
           is_active?: boolean | null
           is_favorite?: boolean | null
@@ -197,6 +199,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          display_name?: string | null
           id?: string
           is_active?: boolean | null
           is_favorite?: boolean | null
