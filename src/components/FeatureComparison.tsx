@@ -1,13 +1,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Zap, Crown } from "lucide-react";
+import { Check, X, Zap, Crown, Sparkles } from "lucide-react";
 
 export function FeatureComparison() {
   const features = [
     {
+      category: "플랫폼 차별점",
+      items: [
+        { name: "일반 키워드 검색", quick: "❌ 사이트 리뷰만 수집", full: "❌ 사이트 리뷰만 수집" },
+        { name: "리얼 VOC 플랫폼", quick: "✅ 소비자 커뮤니티 수집", full: "✅ 소비자 커뮤니티 + AI 분석" },
+        { name: "데이터 출처", quick: "커뮤니티 게시판 (진짜 소비자 의견)", full: "커뮤니티 게시판 (진짜 소비자 의견)" },
+      ]
+    },
+    {
       category: "기본 기능",
       items: [
-        { name: "1차 AI 데이터베이스 분석", quick: true, full: true },
+        { name: "AI 데이터베이스 분석", quick: true, full: true },
         { name: "감성 분석 & 키워드 추출", quick: true, full: true },
         { name: "네트워크 그래프 시각화", quick: true, full: true },
         { name: "카테고리별 분석", quick: true, full: true },
@@ -35,15 +43,29 @@ export function FeatureComparison() {
 
   return (
     <Card className="w-full bg-gradient-to-br from-background via-background to-muted/20 border-2">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl flex items-center justify-center gap-2">
-          <Zap className="w-6 h-6 text-primary" />
+      <CardHeader>
+        <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+          <h3 className="font-semibold text-primary flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5" />
+            💎 왜 이 플랫폼이 특별한가요?
+          </h3>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              <strong className="text-foreground">일반 검색 엔진:</strong> 공식 사이트 리뷰만 수집 → 기업이 관리하는 평가만 보임
+            </p>
+            <p>
+              <strong className="text-foreground">우리 플랫폼:</strong> 소비자 커뮤니티 게시판 직접 수집 → <strong className="text-primary">진짜 소비자들의 솔직한 의견</strong>
+            </p>
+            <p className="pt-2 border-t">
+              💬 <strong className="text-foreground">Real VOC(Voice of Customer)</strong>: 소비자들이 실제로 토로하는 불만, 칭찬, 니즈를 수집합니다.
+            </p>
+          </div>
+        </div>
+        <CardTitle className="text-xl flex items-center justify-center gap-2">
+          <Zap className="w-5 h-5 text-primary" />
           빠른 검색 vs 전체 분석
-          <Crown className="w-6 h-6 text-yellow-500" />
+          <Crown className="w-5 h-5 text-yellow-500" />
         </CardTitle>
-        <CardDescription className="text-base">
-          프로젝트에 맞는 분석 모드를 선택하세요
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
