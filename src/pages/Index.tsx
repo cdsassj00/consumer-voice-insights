@@ -235,6 +235,31 @@ const Index = () => {
     
     setIsAnalyzingFirstStage(true);
     try {
+      // Generate cache key from result IDs
+      const { generateCacheKey } = await import('@/lib/cacheUtils');
+      const resultIds = results.map(r => r.id);
+      const cacheKey = generateCacheKey(resultIds);
+      
+      // Check if we have cached analysis for these exact results
+      const { data: cachedAnalysis, error: cacheError } = await supabase
+        .from('first_stage_analysis_cache')
+        .select('*')
+        .eq('cache_key', cacheKey)
+        .eq('result_count', results.length)
+        .maybeSingle();
+      
+      if (!cacheError && cachedAnalysis) {
+        console.log('Using cached analysis');
+        setFirstStageAnalysis(cachedAnalysis.analysis_data);
+        toast({
+          title: "분석 완료",
+          description: "저장된 분석 결과를 불러왔습니다.",
+        });
+        return;
+      }
+      
+      console.log('Performing new analysis');
+      
       // 원본 게재일자 기준으로 날짜별 게시글 수 집계
       const dateCounts = results.reduce((acc, result) => {
         // article_published_at이 있는 경우에만 트렌드에 포함
@@ -298,7 +323,26 @@ const Index = () => {
         return;
       }
 
-      setFirstStageAnalysis({ ...data, trendData });
+      const analysisWithTrend = { ...data, trendData };
+      
+      // Save to cache
+      const { error: insertError } = await supabase
+        .from('first_stage_analysis_cache')
+        .insert({
+          cache_key: cacheKey,
+          keyword: currentKeyword || 'all',
+          search_period: searchPeriod,
+          result_count: results.length,
+          analysis_data: analysisWithTrend,
+          trend_data: trendData
+        } as any);
+      
+      if (insertError) {
+        console.error('Failed to cache analysis:', insertError);
+        // Don't throw, just log - caching failure shouldn't break the flow
+      }
+
+      setFirstStageAnalysis(analysisWithTrend);
       toast({
         title: "분석 완료",
         description: "AI가 수집된 게시글 분석을 완료했습니다.",
