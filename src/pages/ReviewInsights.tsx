@@ -33,33 +33,6 @@ const chartColors = [
   'hsl(0, 84%, 60%)',
 ];
 
-const commonChartOptions: ChartOptions<any> = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: true,
-      position: 'bottom',
-      labels: {
-        font: { size: 11, family: 'Noto Sans KR' },
-        padding: 10,
-        usePointStyle: true,
-        color: 'hsl(var(--foreground))'
-      }
-    },
-    tooltip: {
-      backgroundColor: 'hsl(var(--background))',
-      titleColor: 'hsl(var(--foreground))',
-      bodyColor: 'hsl(var(--muted-foreground))',
-      borderColor: 'hsl(var(--border))',
-      borderWidth: 1,
-      cornerRadius: 8,
-      padding: 12,
-      titleFont: { size: 13, weight: 'bold', family: 'Noto Sans KR' },
-      bodyFont: { size: 12, family: 'Noto Sans KR' }
-    }
-  }
-};
 
 export default function ReviewInsights() {
   const { toast } = useToast();
@@ -462,18 +435,6 @@ export default function ReviewInsights() {
               </CardHeader>
               <CardContent>
                 <div className="h-[220px]">
-                  <Pie 
-                    data={{
-                      labels: analysis.sentiment.map(d => d.label),
-                      datasets: [{
-                        data: analysis.sentiment.map(d => d.count),
-                        backgroundColor: chartColors,
-                        borderWidth: 2,
-                        borderColor: 'hsl(var(--background))'
-                      }]
-                    }}
-                    options={commonChartOptions}
-                  />
                 </div>
               </CardContent>
             </Card>
