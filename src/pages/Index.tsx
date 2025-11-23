@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { HelpModal } from "@/components/HelpModal";
 import { FirstStageAnalysis } from "@/components/FirstStageAnalysis";
+import { FeatureComparison } from "@/components/FeatureComparison";
 
 interface SearchResultData {
   totalFound: number;
@@ -789,6 +790,9 @@ const Index = () => {
         {showKeywordManager && session?.user && (
           <KeywordManager userId={session.user.id} />
         )}
+
+          {/* Feature Comparison */}
+          <FeatureComparison />
 
           {/* First Stage Analysis */}
           {firstStageAnalysis && (

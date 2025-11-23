@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      advanced_insights: {
+        Row: {
+          action_items: Json
+          competitive_landscape: Json
+          consumer_personas: Json
+          created_at: string
+          engagement_rate: number | null
+          executive_summary: string
+          id: string
+          keyword: string
+          opportunities: Json
+          overall_sentiment_score: number | null
+          search_period: string | null
+          sentiment_trends: Json
+          threats: Json
+          total_reviews_analyzed: number
+          trend_predictions: Json
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json
+          competitive_landscape?: Json
+          consumer_personas?: Json
+          created_at?: string
+          engagement_rate?: number | null
+          executive_summary: string
+          id?: string
+          keyword: string
+          opportunities?: Json
+          overall_sentiment_score?: number | null
+          search_period?: string | null
+          sentiment_trends?: Json
+          threats?: Json
+          total_reviews_analyzed?: number
+          trend_predictions?: Json
+          user_id: string
+        }
+        Update: {
+          action_items?: Json
+          competitive_landscape?: Json
+          consumer_personas?: Json
+          created_at?: string
+          engagement_rate?: number | null
+          executive_summary?: string
+          id?: string
+          keyword?: string
+          opportunities?: Json
+          overall_sentiment_score?: number | null
+          search_period?: string | null
+          sentiment_trends?: Json
+          threats?: Json
+          total_reviews_analyzed?: number
+          trend_predictions?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       analysis_results: {
         Row: {
           category: string | null
