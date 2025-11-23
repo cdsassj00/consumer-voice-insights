@@ -26,6 +26,7 @@ export type Database = {
           keyword: string
           opportunities: Json
           overall_sentiment_score: number | null
+          project_id: string | null
           search_period: string | null
           sentiment_trends: Json
           threats: Json
@@ -44,6 +45,7 @@ export type Database = {
           keyword: string
           opportunities?: Json
           overall_sentiment_score?: number | null
+          project_id?: string | null
           search_period?: string | null
           sentiment_trends?: Json
           threats?: Json
@@ -62,6 +64,7 @@ export type Database = {
           keyword?: string
           opportunities?: Json
           overall_sentiment_score?: number | null
+          project_id?: string | null
           search_period?: string | null
           sentiment_trends?: Json
           threats?: Json
@@ -69,7 +72,15 @@ export type Database = {
           trend_predictions?: Json
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "advanced_insights_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analysis_results: {
         Row: {
@@ -163,6 +174,7 @@ export type Database = {
           is_favorite: boolean | null
           keyword: string
           last_searched_at: string | null
+          project_id: string | null
           search_count: number | null
           source: string | null
           updated_at: string | null
@@ -176,6 +188,7 @@ export type Database = {
           is_favorite?: boolean | null
           keyword: string
           last_searched_at?: string | null
+          project_id?: string | null
           search_count?: number | null
           source?: string | null
           updated_at?: string | null
@@ -189,9 +202,51 @@ export type Database = {
           is_favorite?: boolean | null
           keyword?: string
           last_searched_at?: string | null
+          project_id?: string | null
           search_count?: number | null
           source?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keywords_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          project_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          project_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          project_type?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -202,6 +257,7 @@ export type Database = {
           created_at: string | null
           id: string
           keyword: string
+          project_id: string | null
           search_period: string | null
           snippet: string | null
           source_domain: string | null
@@ -216,6 +272,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           keyword: string
+          project_id?: string | null
           search_period?: string | null
           snippet?: string | null
           source_domain?: string | null
@@ -230,6 +287,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           keyword?: string
+          project_id?: string | null
           search_period?: string | null
           snippet?: string | null
           source_domain?: string | null
@@ -239,7 +297,15 @@ export type Database = {
           url?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "search_results_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
