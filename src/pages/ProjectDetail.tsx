@@ -12,10 +12,13 @@ import {
   Plus,
   Trash2,
   BarChart,
-  Clock
+  Clock,
+  TrendingUp,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
+import { FirstStageAnalysis } from "@/components/FirstStageAnalysis";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -29,6 +32,15 @@ import {
 
 type Project = Tables<"projects">;
 type Keyword = Tables<"keywords">;
+type SearchResult = {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string | null;
+  keyword: string;
+  article_published_at: string | null;
+  status: string | null;
+};
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
@@ -40,6 +52,11 @@ export default function ProjectDetail() {
   const [availableKeywords, setAvailableKeywords] = useState<Keyword[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -95,6 +112,18 @@ export default function ProjectDetail() {
 
       if (availableError) throw availableError;
       setAvailableKeywords(availableData || []);
+
+      // Check if there are search results for this project
+      const { data: resultsData, error: resultsError } = await supabase
+        .from("search_results")
+        .select("*")
+        .eq("project_id", projectId)
+        .limit(1);
+
+      if (!resultsError && resultsData && resultsData.length > 0) {
+        setShowAnalysis(true);
+        await loadProjectAnalysis();
+      }
     } catch (error) {
       console.error("Error fetching project data:", error);
       toast({
@@ -104,6 +133,78 @@ export default function ProjectDetail() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadProjectAnalysis = async () => {
+    try {
+      setIsLoadingAnalysis(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all search results for this project
+      const { data: results, error: resultsError } = await supabase
+        .from("search_results")
+        .select("id, title, url, snippet, keyword, article_published_at, status")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false });
+
+      if (resultsError) throw resultsError;
+      setSearchResults(results || []);
+
+      if (!results || results.length === 0) {
+        setShowAnalysis(false);
+        return;
+      }
+
+      // Try to get cached analysis for this project
+      const { data: cachedAnalysis } = await supabase
+        .from("first_stage_analysis_cache")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("keyword", `project:${projectId}`)
+        .eq("search_period", "m3")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cachedAnalysis) {
+        setAnalysisData(cachedAnalysis.analysis_data);
+        setTrendData(Array.isArray(cachedAnalysis.trend_data) ? cachedAnalysis.trend_data : []);
+      } else {
+        // Generate new analysis
+        await generateProjectAnalysis(results);
+      }
+    } catch (error) {
+      console.error("Error loading project analysis:", error);
+    } finally {
+      setIsLoadingAnalysis(false);
+    }
+  };
+
+  const generateProjectAnalysis = async (results: any[]) => {
+    try {
+      const response = await supabase.functions.invoke("analyze-first-stage", {
+        body: {
+          searchResults: results,
+          keyword: `project:${projectId}`,
+          searchPeriod: "m3",
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      if (response.data) {
+        setAnalysisData(response.data.analysis);
+        setTrendData(response.data.trendData);
+      }
+    } catch (error) {
+      console.error("Error generating project analysis:", error);
+      toast({
+        title: "분석 생성 실패",
+        description: "프로젝트 분석을 생성하는데 실패했습니다.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -155,12 +256,78 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleProjectSearch = () => {
-    // Phase 2.4에서 구현 예정
-    toast({
-      title: "곧 제공될 기능입니다",
-      description: "프로젝트 전체 검색은 Phase 2.4에서 구현 예정입니다.",
-    });
+  const handleProjectSearch = async () => {
+    if (keywords.length === 0) {
+      toast({
+        title: "키워드가 없습니다",
+        description: "프로젝트에 키워드를 먼저 추가해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      toast({
+        title: "프로젝트 검색 시작",
+        description: `${keywords.length}개 키워드에 대한 검색을 시작합니다...`,
+      });
+
+      // 각 키워드에 대해 순차적으로 검색 실행
+      let totalResults = 0;
+      for (const keyword of keywords) {
+        try {
+          const response = await supabase.functions.invoke("search-and-filter", {
+            body: {
+              keyword: keyword.keyword,
+              searchPeriod: "m3", // 기본 3개월
+              projectId: projectId,
+            },
+          });
+
+          if (response.error) {
+            console.error(`Error searching keyword ${keyword.keyword}:`, response.error);
+            continue;
+          }
+
+          if (response.data?.savedToDatabase) {
+            totalResults += response.data.savedToDatabase;
+          }
+
+          // 키워드 검색 횟수 업데이트
+          await supabase
+            .from("keywords")
+            .update({
+              search_count: (keyword.search_count || 0) + 1,
+              last_searched_at: new Date().toISOString(),
+            })
+            .eq("id", keyword.id);
+        } catch (error) {
+          console.error(`Error processing keyword ${keyword.keyword}:`, error);
+        }
+      }
+
+      toast({
+        title: "프로젝트 검색 완료",
+        description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
+      });
+
+      // 데이터 새로고침
+      fetchProjectData();
+      setShowAnalysis(true);
+    } catch (error) {
+      console.error("Error in project search:", error);
+      toast({
+        title: "검색 실패",
+        description: "프로젝트 검색 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleModalClose = () => {
@@ -379,6 +546,39 @@ export default function ProjectDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Integrated Analysis Dashboard */}
+      {showAnalysis && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              <CardTitle>프로젝트 통합 분석</CardTitle>
+            </div>
+            <CardDescription>
+              프로젝트의 모든 키워드에 대한 통합 분석 결과입니다
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingAnalysis ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : analysisData ? (
+              <FirstStageAnalysis 
+                analysis={analysisData}
+                trendData={trendData}
+                searchResults={searchResults}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>분석 데이터가 없습니다</p>
+                <p className="text-sm mt-1">프로젝트 전체 검색을 실행해보세요</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Project Modal */}
       <ProjectModal
