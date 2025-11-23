@@ -639,6 +639,7 @@ export default function ProjectDetail() {
               display_name: displayName,
               user_id: user.id,
               project_id: projectId,
+              is_active: true,
               source: "guided_search",
               category: null,
               search_count: 1,
@@ -710,20 +711,21 @@ export default function ProjectDetail() {
             // 키워드를 먼저 프로젝트에 등록
             const existingKeyword = keywords.find(k => k.keyword === kw.searchQuery);
             if (!existingKeyword) {
-              const { data: insertedKeyword, error: insertError } = await supabase
-                .from("keywords")
-                .insert({
-                  keyword: kw.searchQuery,
-                  display_name: kw.displayName,
-                  user_id: user.id,
-                  project_id: projectId,
-                  source: "auto_generated",
-                  category: null,
-                  search_count: 1,
-                  last_searched_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
+          const { data: insertedKeyword, error: insertError } = await supabase
+            .from("keywords")
+            .insert({
+              keyword: kw.searchQuery,
+              display_name: kw.displayName,
+              user_id: user.id,
+              project_id: projectId,
+              is_active: true,
+              source: "auto_generated",
+              category: null,
+              search_count: 1,
+              last_searched_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
               
               if (insertError) {
                 console.error(`Error inserting keyword ${kw.displayName}:`, insertError);
