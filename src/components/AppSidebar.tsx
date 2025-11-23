@@ -1,4 +1,4 @@
-import { Home, BarChart3, Star, FolderKanban, Settings } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -15,12 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainItems = [
-  { title: "홈", url: "/", icon: Home },
-  { title: "분석 결과", url: "/results", icon: BarChart3 },
-];
-
-const managementItems = [
-  { title: "키워드 관리", url: "/", icon: Star },
+  { title: "대시보드", url: "/", icon: LayoutDashboard },
   { title: "프로젝트 관리", url: "/projects", icon: FolderKanban },
 ];
 
@@ -58,31 +53,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-sidebar-accent text-sidebar-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {open && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Management Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60">
-            관리
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink
