@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FirstStageAnalysis } from "@/components/FirstStageAnalysis";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDistanceToNow } from "date-fns";
@@ -99,6 +100,12 @@ export default function ProjectDetail() {
   const [isGuidedSearching, setIsGuidedSearching] = useState(false);
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState<Step[]>([]);
+  
+  // Confirm dialog states
+  const [removeKeywordDialogOpen, setRemoveKeywordDialogOpen] = useState(false);
+  const [keywordToRemove, setKeywordToRemove] = useState<string | null>(null);
+  const [deleteResultDialogOpen, setDeleteResultDialogOpen] = useState(false);
+  const [resultToDelete, setResultToDelete] = useState<string | null>(null);
   
   const keywordTypes = [
     { id: "review", label: "후기" },
@@ -337,14 +344,19 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleRemoveKeyword = async (keywordId: string) => {
-    if (!confirm("이 키워드를 프로젝트에서 제거하시겠습니까?")) return;
+  const handleRemoveKeyword = (keywordId: string) => {
+    setKeywordToRemove(keywordId);
+    setRemoveKeywordDialogOpen(true);
+  };
+
+  const confirmRemoveKeyword = async () => {
+    if (!keywordToRemove) return;
 
     try {
       const { error } = await supabase
         .from("keywords")
         .update({ project_id: null })
-        .eq("id", keywordId);
+        .eq("id", keywordToRemove);
 
       if (error) throw error;
 
@@ -359,24 +371,30 @@ export default function ProjectDetail() {
         title: "키워드 제거 실패",
         variant: "destructive",
       });
+    } finally {
+      setRemoveKeywordDialogOpen(false);
+      setKeywordToRemove(null);
     }
   };
 
-  const handleDeleteResult = async (resultId: string) => {
-    if (!confirm('이 게시글을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) {
-      return;
-    }
+  const handleDeleteResult = (resultId: string) => {
+    setResultToDelete(resultId);
+    setDeleteResultDialogOpen(true);
+  };
+
+  const confirmDeleteResult = async () => {
+    if (!resultToDelete) return;
     
     try {
       const { error } = await supabase
         .from('search_results')
         .delete()
-        .eq('id', resultId);
+        .eq('id', resultToDelete);
       
       if (error) throw error;
       
       // 로컬 state에서 제거
-      setSearchResults(prev => prev.filter(r => r.id !== resultId));
+      setSearchResults(prev => prev.filter(r => r.id !== resultToDelete));
       
       toast({
         title: "삭제 완료",
@@ -394,6 +412,9 @@ export default function ProjectDetail() {
         description: "게시글 삭제 중 오류가 발생했습니다.",
         variant: "destructive",
       });
+    } finally {
+      setDeleteResultDialogOpen(false);
+      setResultToDelete(null);
     }
   };
 
@@ -1104,6 +1125,30 @@ export default function ProjectDetail() {
         open={isModalOpen}
         onClose={handleModalClose}
         project={project}
+      />
+
+      {/* Remove Keyword Confirmation Dialog */}
+      <ConfirmDialog
+        open={removeKeywordDialogOpen}
+        onOpenChange={setRemoveKeywordDialogOpen}
+        title="키워드 제거"
+        description="이 키워드를 프로젝트에서 제거하시겠습니까? 키워드는 삭제되지 않고 프로젝트 할당만 해제됩니다."
+        confirmText="제거"
+        cancelText="취소"
+        onConfirm={confirmRemoveKeyword}
+        variant="destructive"
+      />
+
+      {/* Delete Result Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteResultDialogOpen}
+        onOpenChange={setDeleteResultDialogOpen}
+        title="게시글 삭제"
+        description="이 게시글을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다."
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={confirmDeleteResult}
+        variant="destructive"
       />
     </div>
   );

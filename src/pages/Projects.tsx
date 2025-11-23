@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, FolderKanban, Edit, Trash2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Project = Tables<"projects">;
@@ -17,6 +18,8 @@ export default function Projects() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -65,14 +68,19 @@ export default function Projects() {
     }
   };
 
-  const handleDelete = async (projectId: string) => {
-    if (!confirm("정말 이 프로젝트를 삭제하시겠습니까?")) return;
+  const handleDelete = (projectId: string) => {
+    setProjectToDelete(projectId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!projectToDelete) return;
 
     try {
       const { error } = await supabase
         .from("projects")
         .update({ is_active: false })
-        .eq("id", projectId);
+        .eq("id", projectToDelete);
 
       if (error) throw error;
 
@@ -88,6 +96,9 @@ export default function Projects() {
         description: "프로젝트 삭제 중 오류가 발생했습니다.",
         variant: "destructive",
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
     }
   };
 
@@ -212,6 +223,18 @@ export default function Projects() {
         open={isModalOpen}
         onClose={handleModalClose}
         project={editingProject}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="프로젝트 삭제"
+        description="정말 이 프로젝트를 삭제하시겠습니까? 삭제된 프로젝트는 복구할 수 없습니다."
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={confirmDelete}
+        variant="destructive"
       />
     </div>
   );

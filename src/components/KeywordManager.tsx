@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Edit2, Save, X, Star, Clock, BarChart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -41,6 +42,8 @@ export const KeywordManager = ({ userId }: { userId: string }) => {
   const [editText, setEditText] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [keywordToDelete, setKeywordToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -163,17 +166,22 @@ export const KeywordManager = ({ userId }: { userId: string }) => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("이 키워드를 삭제하시겠습니까?")) return;
+  const handleDelete = (id: string) => {
+    setKeywordToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!keywordToDelete) return;
     
     try {
       const { error } = await supabase
         .from("keywords")
         .update({ is_active: false })
-        .eq("id", id);
+        .eq("id", keywordToDelete);
 
       if (error) throw error;
-      setKeywords(keywords.filter((k) => k.id !== id));
+      setKeywords(keywords.filter((k) => k.id !== keywordToDelete));
       toast({
         title: "키워드 삭제 완료",
         description: "키워드가 삭제되었습니다.",
@@ -184,6 +192,9 @@ export const KeywordManager = ({ userId }: { userId: string }) => {
         title: "키워드 삭제 실패",
         variant: "destructive",
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setKeywordToDelete(null);
     }
   };
 
@@ -444,6 +455,18 @@ export const KeywordManager = ({ userId }: { userId: string }) => {
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="키워드 삭제"
+        description="이 키워드를 삭제하시겠습니까? 삭제된 키워드는 복구할 수 없습니다."
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={confirmDelete}
+        variant="destructive"
+      />
     </Card>
   );
 };
