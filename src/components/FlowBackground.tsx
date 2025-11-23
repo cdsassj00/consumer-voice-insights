@@ -41,51 +41,28 @@ const FlowParticles = () => {
     const opacities = pointsRef.current.geometry.attributes.opacity.array as Float32Array;
     const time = state.clock.getElapsedTime();
 
-    // Add current mouse position to trail
-    mouseTrail.current.push({
-      x: mousePosition.current.x,
-      y: mousePosition.current.y,
-      time: time
-    });
-
-    // Keep only recent trail (last 2 seconds)
-    mouseTrail.current = mouseTrail.current.filter(point => time - point.time < 2);
-
+    // 마우스 현재 위치만 사용해서, 주변 입자들이 숨쉬듯 나타났다 사라지도록 처리
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       const px = positions[i3];
       const py = positions[i3 + 1];
 
-      // Check if particle is near any point in mouse trail
-      let maxActivation = 0;
-      
-      for (let j = 0; j < mouseTrail.current.length; j++) {
-        const trail = mouseTrail.current[j];
-        const dx = trail.x - px;
-        const dy = trail.y - py;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const timeSinceTrail = time - trail.time;
-        
-        // Wave effect: particles activate based on distance and time
-        const waveSpeed = 4;
-        const expectedDistance = timeSinceTrail * waveSpeed;
-        const distanceFromWave = Math.abs(distance - expectedDistance);
-        
-        if (distanceFromWave < 1.5 && timeSinceTrail < 1) {
-          const activation = Math.max(0, 1 - distanceFromWave / 1.5) * (1 - timeSinceTrail);
-          maxActivation = Math.max(maxActivation, activation);
-        }
+      const dx = mousePosition.current.x - px;
+      const dy = mousePosition.current.y - py;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // 마우스 주변 반경 안에 있는 입자들만 강하게 활성화
+      const radius = 5;
+      let targetOpacity = 0;
+      if (distance < radius) {
+        targetOpacity = 1 - distance / radius; // 가까울수록 더 밝게
       }
 
-      // Update particle opacity (breathing effect)
-      if (maxActivation > 0) {
-        opacities[i] = Math.min(1, opacities[i] + 0.15);
-      } else {
-        opacities[i] = Math.max(0, opacities[i] - 0.03);
-      }
+      // 부드럽게 숨쉬는 듯한 페이드 인/아웃
+      opacities[i] += (targetOpacity - opacities[i]) * 0.25;
 
-      // Subtle floating motion
-      positions[i3 + 2] = Math.sin(time * 0.3 + i * 0.05) * 0.3;
+      // 전체에 아주 약한 부유감 부여
+      positions[i3 + 2] = Math.sin(time * 0.4 + i * 0.05) * 0.4;
     }
 
     pointsRef.current.geometry.attributes.opacity.needsUpdate = true;
