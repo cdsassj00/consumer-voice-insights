@@ -111,6 +111,13 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
         
         node.vx *= 0.9; // damping
         node.vy *= 0.9;
+
+        // Add slight jitter so nodes keep moving organically
+        if (Math.abs(node.vx) < 0.01 && Math.abs(node.vy) < 0.01) {
+          node.vx += (Math.random() - 0.5) * 0.2;
+          node.vy += (Math.random() - 0.5) * 0.2;
+        }
+
         node.x += node.vx;
         node.y += node.vy;
 
@@ -124,8 +131,8 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
       ctx.clearRect(0, 0, width, height);
 
       // Draw edges
-      ctx.strokeStyle = "rgba(155, 135, 245, 0.3)"; // Brand purple with transparency
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.lineWidth = 1.8;
       edges.forEach(edge => {
         const source = nodesRef.current.get(edge.source);
         const target = nodesRef.current.get(edge.target);
@@ -143,11 +150,11 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
         if (!pos) return;
 
         const isHovered = hoveredNode === node.id;
-        const radius = isHovered ? 36 : 32;
+        const radius = isHovered ? 30 : 26;
 
         // Shadow
-        ctx.shadowColor = "rgba(155, 135, 245, 0.4)";
-        ctx.shadowBlur = isHovered ? 20 : 12;
+        ctx.shadowColor = "rgba(155, 135, 245, 0.45)";
+        ctx.shadowBlur = isHovered ? 18 : 10;
         
         // Node circle
         ctx.fillStyle = isHovered ? "#9b87f5" : "rgba(155, 135, 245, 0.85)";
@@ -157,26 +164,12 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
 
         ctx.shadowBlur = 0;
 
-        // Label - draw outside the node
-        ctx.fillStyle = "#1a1f2c";
-        ctx.font = isHovered ? "bold 14px sans-serif" : "13px sans-serif";
+        // Label inside node
+        ctx.fillStyle = "#ffffff";
+        ctx.font = isHovered ? "bold 13px sans-serif" : "12px sans-serif";
         ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        
-        // Add white background for label
-        const labelWidth = ctx.measureText(node.label).width;
-        const labelPadding = 6;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-        ctx.fillRect(
-          pos.x - labelWidth / 2 - labelPadding,
-          pos.y + radius + 6,
-          labelWidth + labelPadding * 2,
-          20
-        );
-        
-        // Draw label text
-        ctx.fillStyle = "#1a1f2c";
-        ctx.fillText(node.label, pos.x, pos.y + radius + 10);
+        ctx.textBaseline = "middle";
+        ctx.fillText(node.label, pos.x, pos.y);
       });
 
       animationId = requestAnimationFrame(simulate);
