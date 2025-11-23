@@ -23,50 +23,49 @@ serve(async (req) => {
       .map((r: any, idx: number) => `[${idx + 1}] 제목: ${r.title}\n내용: ${r.snippet}`)
       .join('\n\n');
 
-    const systemPrompt = `당신은 한국 소비자 리뷰 분석 전문가입니다. 주어진 게시글들의 제목과 스니펫을 분석하여 다음 정보를 JSON 형식으로 반환하세요:
+    const systemPrompt = `You are a Korean consumer review analysis expert. Analyze the given post titles and snippets and return ONLY a valid JSON object (no markdown, no explanations, just pure JSON) with this exact structure:
 
 {
   "sentiment": {
-    "positive": 긍정 비율(0-100),
-    "neutral": 중립 비율(0-100),
-    "negative": 부정 비율(0-100)
+    "positive": <number 0-100>,
+    "neutral": <number 0-100>,
+    "negative": <number 0-100>
   },
-  "topKeywords": ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5"],
+  "topKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
   "mainTopics": [
-    {"topic": "주제1", "count": 언급횟수},
-    {"topic": "주제2", "count": 언급횟수},
-    {"topic": "주제3", "count": 언급횟수}
+    {"topic": "topic1", "count": <number>},
+    {"topic": "topic2", "count": <number>},
+    {"topic": "topic3", "count": <number>}
   ],
   "categoryAnalysis": {
-    "product": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
-    "service": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
-    "store": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
-    "price": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]},
-    "quality": {"mentions": 수치, "sentiment": "긍정|중립|부정", "keywords": ["키워드1", "키워드2"]}
+    "product": {"mentions": <number>, "sentiment": "긍정|중립|부정", "keywords": ["kw1", "kw2"]},
+    "service": {"mentions": <number>, "sentiment": "긍정|중립|부정", "keywords": ["kw1", "kw2"]},
+    "store": {"mentions": <number>, "sentiment": "긍정|중립|부정", "keywords": ["kw1", "kw2"]},
+    "price": {"mentions": <number>, "sentiment": "긍정|중립|부정", "keywords": ["kw1", "kw2"]},
+    "quality": {"mentions": <number>, "sentiment": "긍정|중립|부정", "keywords": ["kw1", "kw2"]}
   },
   "keyOpinions": [
-    {"opinion": "주요 의견 1", "sentiment": "긍정|부정", "frequency": 언급횟수},
-    {"opinion": "주요 의견 2", "sentiment": "긍정|부정", "frequency": 언급횟수},
-    {"opinion": "주요 의견 3", "sentiment": "긍정|부정", "frequency": 언급횟수}
+    {"opinion": "주요 의견", "sentiment": "긍정|부정", "frequency": <number>}
   ],
   "networkGraph": {
     "nodes": [
-      {"id": "키워드1", "value": 중요도(1-10), "category": "카테고리"},
-      {"id": "키워드2", "value": 중요도(1-10), "category": "카테고리"}
+      {"id": "keyword", "value": <number 1-10>, "category": "category"}
     ],
     "links": [
-      {"source": "키워드1", "target": "키워드2", "value": 연관강도(1-5)}
+      {"source": "keyword1", "target": "keyword2", "value": <number 1-5>}
     ]
   },
   "quantitativeMetrics": {
-    "totalMentions": 전체언급수,
-    "avgSentimentScore": 평균감성점수(-1.0~1.0),
-    "engagementRate": 참여율(0-100),
+    "totalMentions": <number>,
+    "avgSentimentScore": <number -1.0 to 1.0>,
+    "engagementRate": <number 0-100>,
     "trendDirection": "상승|하락|안정",
-    "growthRate": 증가율(%)
+    "growthRate": <number>
   },
-  "summary": "전체적인 소비자 의견 요약 (2-3문장)"
-}`;
+  "summary": "전체 요약 문장"
+}
+
+IMPORTANT: Return ONLY valid JSON. No markdown code blocks, no additional text.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -106,7 +105,21 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const analysisResult = JSON.parse(data.choices[0].message.content);
+    let content = data.choices[0].message.content;
+    
+    // Remove markdown code blocks if present
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    console.log("LLM Response content:", content);
+    
+    let analysisResult;
+    try {
+      analysisResult = JSON.parse(content);
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      console.error("Failed to parse content:", content);
+      throw new Error(`Invalid JSON from LLM: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+    }
 
     return new Response(
       JSON.stringify(analysisResult),
