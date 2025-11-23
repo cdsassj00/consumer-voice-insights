@@ -124,8 +124,8 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
       ctx.clearRect(0, 0, width, height);
 
       // Draw edges
-      ctx.strokeStyle = "hsl(var(--border))";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(155, 135, 245, 0.3)"; // Brand purple with transparency
+      ctx.lineWidth = 2.5;
       edges.forEach(edge => {
         const source = nodesRef.current.get(edge.source);
         const target = nodesRef.current.get(edge.target);
@@ -143,26 +143,40 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
         if (!pos) return;
 
         const isHovered = hoveredNode === node.id;
-        const radius = isHovered ? 28 : 24;
+        const radius = isHovered ? 36 : 32;
 
         // Shadow
-        ctx.shadowColor = "hsl(var(--primary) / 0.3)";
-        ctx.shadowBlur = isHovered ? 15 : 8;
+        ctx.shadowColor = "rgba(155, 135, 245, 0.4)";
+        ctx.shadowBlur = isHovered ? 20 : 12;
         
         // Node circle
-        ctx.fillStyle = isHovered ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.8)";
+        ctx.fillStyle = isHovered ? "#9b87f5" : "rgba(155, 135, 245, 0.85)";
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.shadowBlur = 0;
 
-        // Label
-        ctx.fillStyle = "hsl(var(--primary-foreground))";
-        ctx.font = isHovered ? "bold 12px sans-serif" : "11px sans-serif";
+        // Label - draw outside the node
+        ctx.fillStyle = "#1a1f2c";
+        ctx.font = isHovered ? "bold 14px sans-serif" : "13px sans-serif";
         ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(node.label, pos.x, pos.y);
+        ctx.textBaseline = "top";
+        
+        // Add white background for label
+        const labelWidth = ctx.measureText(node.label).width;
+        const labelPadding = 6;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.fillRect(
+          pos.x - labelWidth / 2 - labelPadding,
+          pos.y + radius + 6,
+          labelWidth + labelPadding * 2,
+          20
+        );
+        
+        // Draw label text
+        ctx.fillStyle = "#1a1f2c";
+        ctx.fillText(node.label, pos.x, pos.y + radius + 10);
       });
 
       animationId = requestAnimationFrame(simulate);
@@ -197,7 +211,7 @@ export default function InteractiveNetworkGraph({ nodes, edges }: InteractiveNet
       const dx = x - pos.x;
       const dy = y - pos.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < 24) {
+      if (distance < 32) {
         foundNode = id;
         break;
       }

@@ -435,6 +435,25 @@ export default function ReviewInsights() {
               </CardHeader>
               <CardContent>
                 <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie
+                        data={analysis.sentiment}
+                        dataKey="count"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        label={(entry) => `${entry.label}: ${entry.count}`}
+                      >
+                        {analysis.sentiment.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: 'hsl(0 0% 100%)', border: '1px solid hsl(240 15% 92%)', borderRadius: '8px' }} />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
