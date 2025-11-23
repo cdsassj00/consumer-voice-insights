@@ -33,6 +33,33 @@ interface FirstStageAnalysisProps {
       quality?: { mentions: number; sentiment: string; keywords: string[] };
     };
     keyOpinions?: Array<{ opinion: string; sentiment: string; frequency: number }>;
+    consumerPersonas?: Array<{
+      persona: string;
+      characteristics: string;
+      painPoints: string[];
+      desires: string[];
+    }>;
+    competitiveInsights?: {
+      competitorMentions: Array<{ brand: string; context: string; sentiment: string }>;
+      comparativeAdvantages: string[];
+      competitiveThreats: string[];
+    };
+    purchaseDrivers?: {
+      motivations: string[];
+      barriers: string[];
+      decisionFactors: Array<{ factor: string; importance: string }>;
+    };
+    actionableRecommendations?: Array<{
+      priority: string;
+      category: string;
+      recommendation: string;
+      expectedImpact: string;
+    }>;
+    emergingTrends?: Array<{
+      trend: string;
+      description: string;
+      businessImplication: string;
+    }>;
     networkGraph?: {
       nodes: Array<{ id: string; value: number; category: string }>;
       links: Array<{ source: string; target: string; value: number }>;
@@ -556,6 +583,244 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           </div>
         </CardContent>
       </Card>
+
+      {/* 소비자 페르소나 */}
+      {analysis.consumerPersonas && analysis.consumerPersonas.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">소비자 페르소나</CardTitle>
+            <CardDescription>데이터 기반 소비자 유형 분석</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {analysis.consumerPersonas.map((persona, idx) => (
+                <div 
+                  key={idx} 
+                  className="p-4 border rounded-lg space-y-3 hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => handleChartClick(() => true, `${persona.persona} 관련 게시글`)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary"></div>
+                    <h4 className="font-semibold">{persona.persona}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{persona.characteristics}</p>
+                  {persona.painPoints.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-destructive mb-1">불만 사항:</p>
+                      <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
+                        {persona.painPoints.map((point, i) => (
+                          <li key={i}>{point}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {persona.desires.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-success mb-1">욕구:</p>
+                      <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
+                        {persona.desires.map((desire, i) => (
+                          <li key={i}>{desire}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 경쟁 인사이트 */}
+      {analysis.competitiveInsights && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">경쟁 인사이트</CardTitle>
+            <CardDescription>경쟁사 분석 및 포지셔닝</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {analysis.competitiveInsights.competitorMentions.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3">경쟁사 언급</h4>
+                  <div className="space-y-2">
+                    {analysis.competitiveInsights.competitorMentions.map((comp, idx) => (
+                      <div 
+                        key={idx} 
+                        className="p-3 border rounded-lg flex items-start gap-3 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => handleChartClick(
+                          (result) => result.snippet?.toLowerCase().includes(comp.brand.toLowerCase()) || 
+                                      result.title.toLowerCase().includes(comp.brand.toLowerCase()),
+                          `${comp.brand} 언급 게시글`
+                        )}
+                      >
+                        <Badge style={{ backgroundColor: getSentimentColor(comp.sentiment), color: 'white' }}>
+                          {comp.sentiment}
+                        </Badge>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{comp.brand}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{comp.context}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                {analysis.competitiveInsights.comparativeAdvantages.length > 0 && (
+                  <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+                    <h4 className="font-semibold text-success mb-2 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      우리의 강점
+                    </h4>
+                    <ul className="text-sm space-y-1 list-disc list-inside">
+                      {analysis.competitiveInsights.comparativeAdvantages.map((adv, i) => (
+                        <li key={i} className="text-foreground">{adv}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {analysis.competitiveInsights.competitiveThreats.length > 0 && (
+                  <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2">
+                      <TrendingDown className="w-4 h-4" />
+                      경쟁 위협
+                    </h4>
+                    <ul className="text-sm space-y-1 list-disc list-inside">
+                      {analysis.competitiveInsights.competitiveThreats.map((threat, i) => (
+                        <li key={i} className="text-foreground">{threat}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 구매 동인 */}
+      {analysis.purchaseDrivers && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">구매 동인 분석</CardTitle>
+            <CardDescription>소비자 구매 결정 요인</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                {analysis.purchaseDrivers.motivations.length > 0 && (
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold text-success mb-3">구매 동기</h4>
+                    <ul className="text-sm space-y-2 list-disc list-inside">
+                      {analysis.purchaseDrivers.motivations.map((mot, i) => (
+                        <li key={i} className="text-foreground">{mot}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {analysis.purchaseDrivers.barriers.length > 0 && (
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold text-destructive mb-3">구매 장벽</h4>
+                    <ul className="text-sm space-y-2 list-disc list-inside">
+                      {analysis.purchaseDrivers.barriers.map((barrier, i) => (
+                        <li key={i} className="text-foreground">{barrier}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              
+              {analysis.purchaseDrivers.decisionFactors.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3">결정 요인</h4>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {analysis.purchaseDrivers.decisionFactors.map((factor, idx) => {
+                      const importanceColor = 
+                        factor.importance === '높음' ? 'bg-destructive' :
+                        factor.importance === '중간' ? 'bg-warning' : 'bg-muted';
+                      
+                      return (
+                        <div key={idx} className="p-3 border rounded-lg flex items-start gap-2">
+                          <div className={`w-2 h-2 rounded-full mt-1.5 ${importanceColor}`}></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{factor.factor}</p>
+                            <p className="text-xs text-muted-foreground">{factor.importance}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 실행 가능한 제안 */}
+      {analysis.actionableRecommendations && analysis.actionableRecommendations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">실행 제안</CardTitle>
+            <CardDescription>데이터 기반 비즈니스 액션 아이템</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {analysis.actionableRecommendations.map((rec, idx) => {
+                const priorityColor = 
+                  rec.priority === '높음' ? 'destructive' :
+                  rec.priority === '중간' ? 'default' : 'secondary';
+                
+                return (
+                  <div key={idx} className="p-4 border rounded-lg space-y-2 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={priorityColor}>{rec.priority}</Badge>
+                      <Badge variant="outline">{rec.category}</Badge>
+                    </div>
+                    <p className="font-medium text-sm">{rec.recommendation}</p>
+                    <p className="text-xs text-muted-foreground">
+                      💡 예상 효과: {rec.expectedImpact}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 트렌드 분석 */}
+      {analysis.emergingTrends && analysis.emergingTrends.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">신흥 트렌드</CardTitle>
+            <CardDescription>주목해야 할 시장 트렌드</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {analysis.emergingTrends.map((trend, idx) => (
+                <div key={idx} className="p-4 border rounded-lg space-y-2">
+                  <div className="flex items-start gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{trend.trend}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{trend.description}</p>
+                      <div className="mt-3 p-3 bg-primary/5 rounded border-l-4 border-primary">
+                        <p className="text-xs font-medium text-primary">비즈니스 시사점</p>
+                        <p className="text-sm mt-1">{trend.businessImplication}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 요약 */}
       <Card>
