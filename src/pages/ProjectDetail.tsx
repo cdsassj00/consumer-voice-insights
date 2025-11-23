@@ -15,7 +15,8 @@ import {
   BarChart,
   Clock,
   TrendingUp,
-  Loader2
+  Loader2,
+  HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectModal } from "@/components/ProjectModal";
@@ -30,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
 
 type Project = Tables<"projects">;
 type Keyword = Tables<"keywords">;
@@ -95,6 +97,8 @@ export default function ProjectDetail() {
   const [productServiceInput, setProductServiceInput] = useState("");
   const [selectedKeywordTypes, setSelectedKeywordTypes] = useState<string[]>([]);
   const [isGuidedSearching, setIsGuidedSearching] = useState(false);
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState<Step[]>([]);
   
   const keywordTypes = [
     { id: "review", label: "후기" },
@@ -112,6 +116,59 @@ export default function ProjectDetail() {
       fetchProjectData();
     }
   }, [projectId]);
+
+  // Define tour steps
+  useEffect(() => {
+    const steps: Step[] = [
+      {
+        target: '[data-tour="guided-search"]',
+        content: '3단계 질문에 답하면 자동으로 최적의 검색어를 생성하고 즉시 검색을 실행합니다. 검색된 키워드는 프로젝트에 자동으로 저장됩니다.',
+        disableBeacon: true,
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="keyword-add"]',
+        content: '다른 프로젝트에서 사용한 키워드를 가져와 재사용할 수 있습니다. 검색은 실행되지 않고 프로젝트에만 할당됩니다.',
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="project-search"]',
+        content: '할당된 모든 키워드로 한 번에 검색을 실행합니다. 효율적인 대량 데이터 수집이 가능합니다.',
+        placement: 'top',
+      },
+      {
+        target: '[data-tour="keyword-list"]',
+        content: '프로젝트에 저장된 키워드들입니다. 개별 검색, 삭제, 즐겨찾기 설정이 가능합니다.',
+        placement: 'top',
+      },
+      {
+        target: '[data-tour="results-list"]',
+        content: '수집된 게시글을 확인할 수 있습니다. 각 게시글을 클릭하면 원본 페이지로 이동합니다.',
+        placement: 'top',
+      },
+    ];
+    setTourSteps(steps);
+  }, []);
+
+  // Auto-run tour for first-time visitors with empty projects
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('project-tour-completed');
+    
+    if (!hasSeenTour && project && keywords.length === 0) {
+      setTimeout(() => {
+        setRunTour(true);
+      }, 1000);
+    }
+  }, [project, keywords]);
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status } = data;
+    
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      setRunTour(false);
+      localStorage.setItem('project-tour-completed', 'true');
+    }
+  };
 
   const fetchProjectData = async () => {
     try {
@@ -539,6 +596,14 @@ export default function ProjectDetail() {
           <Button
             variant="outline"
             size="lg"
+            onClick={() => setRunTour(true)}
+          >
+            <HelpCircle className="mr-2 h-4 w-4" />
+            사용 가이드
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
             onClick={() => setIsModalOpen(true)}
           >
             <Settings className="mr-2 h-4 w-4" />
@@ -548,7 +613,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Guided Search - 3 Step Process */}
-      <Card className="border-primary/20">
+      <Card data-tour="guided-search" className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-primary" />
@@ -651,7 +716,7 @@ export default function ProjectDetail() {
       {/* Keywords Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Assigned Keywords */}
-        <Card>
+        <Card data-tour="keyword-list">
           <CardHeader>
             <CardTitle>할당된 키워드 ({keywords.length})</CardTitle>
             <CardDescription>
@@ -662,6 +727,7 @@ export default function ProjectDetail() {
             {/* Project-wide Search Button */}
             <div className="mb-4 pb-4 border-b">
               <Button 
+                data-tour="project-search"
                 onClick={handleProjectSearch} 
                 className="w-full"
                 size="lg"
@@ -738,7 +804,7 @@ export default function ProjectDetail() {
         </Card>
 
         {/* Available Keywords */}
-        <Card>
+        <Card data-tour="keyword-add">
           <CardHeader>
             <CardTitle>키워드 추가</CardTitle>
             <CardDescription>
@@ -834,7 +900,7 @@ export default function ProjectDetail() {
       </Card>
 
       {/* Collected Posts List for this Project */}
-      <Card>
+      <Card data-tour="results-list">
         <CardHeader>
           <CardTitle>수집된 게시글 ({searchResults.length})</CardTitle>
           <CardDescription>
@@ -913,6 +979,50 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Onboarding Tour */}
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        continuous
+        showProgress
+        showSkipButton
+        callback={handleJoyrideCallback}
+        locale={{
+          back: '이전',
+          close: '닫기',
+          last: '완료',
+          next: '다음',
+          skip: '건너뛰기',
+        }}
+        styles={{
+          options: {
+            arrowColor: '#fff',
+            backgroundColor: '#fff',
+            overlayColor: 'rgba(0, 0, 0, 0.75)',
+            primaryColor: 'hsl(var(--primary))',
+            textColor: 'hsl(var(--foreground))',
+            zIndex: 10000,
+          },
+          tooltip: {
+            borderRadius: 8,
+            padding: 20,
+          },
+          buttonNext: {
+            backgroundColor: 'hsl(var(--primary))',
+            borderRadius: 6,
+            padding: '8px 16px',
+            color: 'hsl(var(--primary-foreground))',
+          },
+          buttonBack: {
+            color: 'hsl(var(--muted-foreground))',
+            marginRight: 10,
+          },
+          spotlight: {
+            borderRadius: 8,
+          },
+        }}
+      />
 
       {/* Project Modal */}
       <ProjectModal
