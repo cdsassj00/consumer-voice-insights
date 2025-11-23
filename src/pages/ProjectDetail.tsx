@@ -999,27 +999,53 @@ export default function ProjectDetail() {
           options: {
             arrowColor: '#fff',
             backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.75)',
+            overlayColor: 'rgba(0, 0, 0, 0.8)',
             primaryColor: 'hsl(var(--primary))',
             textColor: 'hsl(var(--foreground))',
             zIndex: 10000,
           },
           tooltip: {
             borderRadius: 8,
-            padding: 20,
+            padding: 24,
+            fontSize: 16,
+            lineHeight: 1.6,
+            border: '1px solid hsl(var(--border))',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+          },
+          tooltipTitle: {
+            fontSize: 18,
+            fontWeight: 600,
+            marginBottom: 8,
+          },
+          tooltipContent: {
+            padding: '8px 0',
           },
           buttonNext: {
             backgroundColor: 'hsl(var(--primary))',
             borderRadius: 6,
-            padding: '8px 16px',
+            padding: '10px 20px',
+            fontSize: 14,
+            fontWeight: 500,
             color: 'hsl(var(--primary-foreground))',
+            transition: 'all 0.2s ease',
           },
           buttonBack: {
             color: 'hsl(var(--muted-foreground))',
-            marginRight: 10,
+            marginRight: 12,
+            padding: '10px 16px',
+            fontSize: 14,
+            fontWeight: 500,
+            borderRadius: 6,
+            transition: 'all 0.2s ease',
+          },
+          buttonSkip: {
+            color: 'hsl(var(--muted-foreground))',
+            fontSize: 14,
+            padding: '10px 16px',
           },
           spotlight: {
             borderRadius: 8,
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 0, 0, 0.5)',
           },
         }}
       />
