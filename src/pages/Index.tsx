@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, Settings, X, Sparkles } from "lucide-react";
+import { Search, Loader2, Settings, X, Sparkles, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { KeywordManager } from "@/components/KeywordManager";
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { HelpModal } from "@/components/HelpModal";
 import { FirstStageAnalysis } from "@/components/FirstStageAnalysis";
 import { FeatureComparison } from "@/components/FeatureComparison";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface SearchResultData {
   totalFound: number;
@@ -659,7 +660,25 @@ const Index = () => {
             <CardContent className="space-y-4">
               {/* 검색 모드 선택 */}
               <div className="p-4 bg-muted/30 rounded-lg border">
-                <label className="text-sm font-medium text-foreground mb-3 block">검색 모드 선택:</label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-foreground">검색 모드 선택:</label>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>검색 모드 비교</DialogTitle>
+                        <DialogDescription>
+                          프로젝트에 맞는 분석 모드를 선택하세요
+                        </DialogDescription>
+                      </DialogHeader>
+                      <FeatureComparison />
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 <RadioGroup value={searchMode} onValueChange={(value) => setSearchMode(value as 'quick' | 'full')} className="space-y-3">
                   <div className="flex items-center space-x-3 p-3 rounded-md border bg-background hover:bg-accent/50 transition-colors cursor-pointer">
                     <RadioGroupItem value="quick" id="quick" />
@@ -790,9 +809,6 @@ const Index = () => {
         {showKeywordManager && session?.user && (
           <KeywordManager userId={session.user.id} />
         )}
-
-          {/* Feature Comparison */}
-          <FeatureComparison />
 
           {/* First Stage Analysis */}
           {firstStageAnalysis && (
