@@ -361,9 +361,9 @@ const Auth = () => {
             </div>
             
             <CardHeader className="text-center px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-              <CardTitle className="text-xl sm:text-2xl">소비자 인사이트 플랫폼</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">RealVOC</CardTitle>
               <CardDescription className="text-sm sm:text-base">
-                실제 소비자들의 의견을 분석하세요
+                LLM AI로 수집된 데이터를 분석까지 한번에
               </CardDescription>
             </CardHeader>
             <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
