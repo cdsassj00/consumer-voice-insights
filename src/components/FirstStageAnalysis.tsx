@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, CartesianGrid, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { TrendingUp, MessageSquare, Hash, Calendar, Network, ShoppingBag, Star, TrendingDown, Activity } from "lucide-react";
 import { ArticleModal } from "./ArticleModal";
+import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, Tooltip as ChartTooltip, Legend as ChartLegend, ChartOptions } from 'chart.js';
+import { Pie, Bar as BarChartJS, Line as LineChartJS, Radar as RadarChartJS } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, PointElement, LineElement, RadialLinearScale, Title, ChartTooltip, ChartLegend);
 
 interface SearchResult {
   id: string;
@@ -104,10 +107,52 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
     setModalOpen(true);
   };
 
+  const chartColors = [
+    'hsl(142, 76%, 36%)',
+    'hsl(215, 20%, 45%)',
+    'hsl(0, 84%, 60%)',
+    'hsl(266, 89%, 68%)',
+    'hsl(210, 100%, 60%)',
+  ];
+
+  const commonChartOptions: ChartOptions<any> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    onClick: (event: any, elements: any[]) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        console.log('Chart clicked:', { index });
+      }
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          font: { size: 11, family: 'Noto Sans KR' },
+          padding: 10,
+          usePointStyle: true,
+          color: 'hsl(var(--foreground))'
+        }
+      },
+      tooltip: {
+        backgroundColor: 'hsl(var(--background))',
+        titleColor: 'hsl(var(--foreground))',
+        bodyColor: 'hsl(var(--muted-foreground))',
+        borderColor: 'hsl(var(--border))',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
+        titleFont: { size: 13, weight: 'bold', family: 'Noto Sans KR' },
+        bodyFont: { size: 12, family: 'Noto Sans KR' }
+      }
+    }
+  };
+
   const sentimentData = [
-    { name: "긍정", value: analysis.sentiment.positive, color: "#10b981" },
-    { name: "중립", value: analysis.sentiment.neutral, color: "#6b7280" },
-    { name: "부정", value: analysis.sentiment.negative, color: "#ef4444" },
+    { name: "긍정", value: analysis.sentiment.positive },
+    { name: "중립", value: analysis.sentiment.neutral },
+    { name: "부정", value: analysis.sentiment.negative },
   ];
 
   // 카테고리별 데이터 변환
@@ -211,50 +256,28 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
             <CardDescription>전체 게시글의 감성 분포</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={sentimentData}
-                  cx="50%"
-                  cy="45%"
-                  labelLine={true}
-                  label={({ name, value, cx, cy, midAngle, innerRadius, outerRadius }) => {
-                    const RADIAN = Math.PI / 180;
-                    const radius = outerRadius + 25;
-                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                    return (
-                      <text 
-                        x={x} 
-                        y={y} 
-                        fill="hsl(var(--foreground))" 
-                        textAnchor={x > cx ? 'start' : 'end'} 
-                        dominantBaseline="central"
-                        className="text-sm font-medium"
-                      >
-                        {`${name} ${value}%`}
-                      </text>
-                    );
-                  }}
-                  outerRadius={65}
-                  fill="#8884d8"
-                  dataKey="value"
-                  onClick={(data) => {
-                    const sentimentMap: { [key: string]: string } = { '긍정': 'positive', '중립': 'neutral', '부정': 'negative' };
-                    handleChartClick(
-                      () => true, // 감성 분석은 전체 게시글 표시
-                      `${data.name} 감성 게시글`
-                    );
-                  }}
-                  className="cursor-pointer"
-                >
-                  {sentimentData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="h-[280px]">
+              <Pie 
+                data={{
+                  labels: sentimentData.map(d => d.name),
+                  datasets: [{
+                    data: sentimentData.map(d => d.value),
+                    backgroundColor: chartColors,
+                    borderWidth: 2,
+                    borderColor: 'hsl(var(--background))'
+                  }]
+                }}
+                options={{
+                  ...commonChartOptions,
+                  onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                      const index = elements[0].index;
+                      handleChartClick(() => true, `${sentimentData[index].name} 감성 게시글`);
+                    }
+                  }
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -265,33 +288,45 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
             <CardDescription>가장 많이 언급된 주제</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={analysis.mainTopics} margin={{ bottom: 60 }}>
-                <XAxis 
-                  dataKey="topic" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                  interval={0}
-                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                />
-                <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
-                <Tooltip />
-                <Bar 
-                  dataKey="count" 
-                  fill="hsl(var(--primary))" 
-                  radius={[8, 8, 0, 0]}
-                  onClick={(data) => {
-                    handleChartClick(
-                      (result) => result.snippet?.toLowerCase().includes(data.topic.toLowerCase()) || 
-                                  result.title.toLowerCase().includes(data.topic.toLowerCase()),
-                      `${data.topic} 관련 게시글`
-                    );
-                  }}
-                  className="cursor-pointer"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[280px]">
+              <BarChartJS 
+                data={{
+                  labels: analysis.mainTopics.map(d => d.topic),
+                  datasets: [{
+                    label: '언급 빈도',
+                    data: analysis.mainTopics.map(d => d.count),
+                    backgroundColor: chartColors[3],
+                    borderRadius: 8
+                  }]
+                }}
+                options={{
+                  ...commonChartOptions,
+                  indexAxis: 'y' as const,
+                  onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                      const index = elements[0].index;
+                      const topic = analysis.mainTopics[index].topic;
+                      handleChartClick(
+                        (result) => result.snippet?.toLowerCase().includes(topic.toLowerCase()) || 
+                                    result.title.toLowerCase().includes(topic.toLowerCase()),
+                        `${topic} 관련 게시글`
+                      );
+                    }
+                  },
+                  scales: {
+                    x: {
+                      beginAtZero: true,
+                      ticks: { color: 'hsl(var(--muted-foreground))', font: { size: 11, family: 'Noto Sans KR' } },
+                      grid: { color: 'hsl(var(--border))', lineWidth: 0.5 }
+                    },
+                    y: {
+                      ticks: { color: 'hsl(var(--muted-foreground))', font: { size: 10, family: 'Noto Sans KR' } },
+                      grid: { display: false }
+                    }
+                  }
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -308,15 +343,35 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <ResponsiveContainer width="100%" height={300}>
-                <RadarChart data={categoryData}>
-                  <PolarGrid stroke="hsl(var(--border))" />
-                  <PolarAngleAxis dataKey="category" stroke="hsl(var(--foreground))" />
-                  <PolarRadiusAxis stroke="hsl(var(--muted-foreground))" />
-                  <Radar name="언급 빈도" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
-                  <Tooltip />
-                </RadarChart>
-              </ResponsiveContainer>
+              <div className="h-[300px]">
+                <RadarChartJS 
+                  data={{
+                    labels: categoryData.map(d => d.category),
+                    datasets: [{
+                      label: '언급 빈도',
+                      data: categoryData.map(d => d.value),
+                      backgroundColor: chartColors[3] + '40',
+                      borderColor: chartColors[3],
+                      borderWidth: 2,
+                      pointBackgroundColor: chartColors[3],
+                      pointBorderColor: '#fff',
+                      pointHoverBackgroundColor: '#fff',
+                      pointHoverBorderColor: chartColors[3]
+                    }]
+                  }}
+                  options={{
+                    ...commonChartOptions,
+                    scales: {
+                      r: {
+                        beginAtZero: true,
+                        ticks: { color: 'hsl(var(--muted-foreground))', font: { size: 10, family: 'Noto Sans KR' } },
+                        grid: { color: 'hsl(var(--border))' },
+                        pointLabels: { color: 'hsl(var(--foreground))', font: { size: 11, family: 'Noto Sans KR' } }
+                      }
+                    }
+                  }}
+                />
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(analysis.categoryAnalysis).map(([key, data]) => data && (
