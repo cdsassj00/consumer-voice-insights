@@ -4,16 +4,17 @@ import * as THREE from 'three';
 
 const FlowParticles = () => {
   const pointsRef = useRef<THREE.Points>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
   const mousePosition = useRef({ x: 0, y: 0 });
   const mouseTrail = useRef<Array<{ x: number; y: number; time: number }>>([]);
-  const particleLife = useRef<Float32Array>();
 
   const particleCount = 2000;
 
-  const { positions, colors } = useMemo(() => {
+  const { positions, colors, sizes, opacities } = useMemo(() => {
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
-    const life = new Float32Array(particleCount);
+    const sizes = new Float32Array(particleCount);
+    const opacities = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 20;
@@ -26,19 +27,18 @@ const FlowParticles = () => {
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
 
-      life[i] = 0; // Start hidden
+      sizes[i] = 0.2 + Math.random() * 0.15;
+      opacities[i] = 0; // Start hidden
     }
 
-    particleLife.current = life;
-
-    return { positions, colors };
+    return { positions, colors, sizes, opacities };
   }, []);
 
   useFrame((state) => {
-    if (!pointsRef.current || !particleLife.current) return;
+    if (!pointsRef.current) return;
 
     const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    const sizes = pointsRef.current.geometry.attributes.size.array as Float32Array;
+    const opacities = pointsRef.current.geometry.attributes.opacity.array as Float32Array;
     const time = state.clock.getElapsedTime();
 
     // Add current mouse position to trail
@@ -67,37 +67,28 @@ const FlowParticles = () => {
         const timeSinceTrail = time - trail.time;
         
         // Wave effect: particles activate based on distance and time
-        const waveRadius = 6;
-        const waveSpeed = 4; // Speed of the wave spreading
+        const waveSpeed = 4;
         const expectedDistance = timeSinceTrail * waveSpeed;
         const distanceFromWave = Math.abs(distance - expectedDistance);
         
         if (distanceFromWave < 1.5 && timeSinceTrail < 1) {
-          // Particle is in the wave
           const activation = Math.max(0, 1 - distanceFromWave / 1.5) * (1 - timeSinceTrail);
           maxActivation = Math.max(maxActivation, activation);
         }
       }
 
-      // Update particle life (breathing effect)
+      // Update particle opacity (breathing effect)
       if (maxActivation > 0) {
-        particleLife.current[i] = Math.min(1, particleLife.current[i] + 0.15);
+        opacities[i] = Math.min(1, opacities[i] + 0.15);
       } else {
-        particleLife.current[i] = Math.max(0, particleLife.current[i] - 0.03);
+        opacities[i] = Math.max(0, opacities[i] - 0.03);
       }
-
-      // Apply breathing animation
-      const breath = Math.sin(time * 2 + i * 0.1) * 0.1 + 0.9;
-      const finalLife = particleLife.current[i] * breath;
-
-      // Update size based on life
-      sizes[i] = finalLife * (0.2 + Math.random() * 0.15);
 
       // Subtle floating motion
       positions[i3 + 2] = Math.sin(time * 0.3 + i * 0.05) * 0.3;
     }
 
-    pointsRef.current.geometry.attributes.size.needsUpdate = true;
+    pointsRef.current.geometry.attributes.opacity.needsUpdate = true;
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
@@ -108,14 +99,6 @@ const FlowParticles = () => {
       mousePosition.current.y = (-(event.clientY / window.innerHeight) * 2 + 1) * 10;
     });
   }
-
-  const sizes = useMemo(() => {
-    const sizes = new Float32Array(particleCount);
-    for (let i = 0; i < particleCount; i++) {
-      sizes[i] = 0; // Start with size 0
-    }
-    return sizes;
-  }, []);
 
   return (
     <points ref={pointsRef}>
@@ -138,17 +121,25 @@ const FlowParticles = () => {
           array={sizes}
           itemSize={1}
         />
+        <bufferAttribute
+          attach="attributes-opacity"
+          count={particleCount}
+          array={opacities}
+          itemSize={1}
+        />
       </bufferGeometry>
       <shaderMaterial
+        ref={materialRef}
         vertexShader={`
           attribute float size;
           attribute vec3 color;
+          attribute float opacity;
           varying vec3 vColor;
-          varying float vSize;
+          varying float vOpacity;
           
           void main() {
             vColor = color;
-            vSize = size;
+            vOpacity = opacity;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
             gl_PointSize = size * 100.0 * (1.0 / -mvPosition.z);
             gl_Position = projectionMatrix * mvPosition;
@@ -156,13 +147,13 @@ const FlowParticles = () => {
         `}
         fragmentShader={`
           varying vec3 vColor;
-          varying float vSize;
+          varying float vOpacity;
           
           void main() {
             float dist = length(gl_PointCoord - vec2(0.5));
             if (dist > 0.5) discard;
             
-            float alpha = (1.0 - dist * 2.0) * vSize * 2.0;
+            float alpha = (1.0 - dist * 2.0) * vOpacity;
             gl_FragColor = vec4(vColor, alpha);
           }
         `}
