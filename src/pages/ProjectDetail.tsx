@@ -183,13 +183,45 @@ export default function ProjectDetail() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch project
-      const { data: projectData, error: projectError } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // 모든 데이터를 병렬로 가져오기 (성능 최적화)
+      const [
+        { data: projectData, error: projectError },
+        { data: keywordsData, error: keywordsError },
+        { data: availableData, error: availableError },
+        { data: resultsData, error: resultsError }
+      ] = await Promise.all([
+        // Fetch project
+        supabase
+          .from("projects")
+          .select("*")
+          .eq("id", projectId)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        
+        // Fetch keywords assigned to this project
+        supabase
+          .from("keywords")
+          .select("*")
+          .eq("project_id", projectId)
+          .eq("is_active", true)
+          .order("keyword"),
+        
+        // Fetch available keywords (not assigned to any project)
+        supabase
+          .from("keywords")
+          .select("*")
+          .eq("user_id", user.id)
+          .is("project_id", null)
+          .eq("is_active", true)
+          .order("keyword"),
+        
+        // Check if there are search results for this project
+        supabase
+          .from("search_results")
+          .select("*")
+          .eq("project_id", projectId)
+          .limit(1)
+      ]);
 
       if (projectError) throw projectError;
       if (!projectData) {
@@ -202,40 +234,18 @@ export default function ProjectDetail() {
       }
 
       setProject(projectData);
-
-      // Fetch keywords assigned to this project
-      const { data: keywordsData, error: keywordsError } = await supabase
-        .from("keywords")
-        .select("*")
-        .eq("project_id", projectId)
-        .eq("is_active", true)
-        .order("keyword");
-
+      
       if (keywordsError) throw keywordsError;
       setKeywords(keywordsData || []);
-
-      // Fetch available keywords (not assigned to any project)
-      const { data: availableData, error: availableError } = await supabase
-        .from("keywords")
-        .select("*")
-        .eq("user_id", user.id)
-        .is("project_id", null)
-        .eq("is_active", true)
-        .order("keyword");
-
+      
       if (availableError) throw availableError;
       setAvailableKeywords(availableData || []);
 
-      // Check if there are search results for this project
-      const { data: resultsData, error: resultsError } = await supabase
-        .from("search_results")
-        .select("*")
-        .eq("project_id", projectId)
-        .limit(1);
-
+      // 분석 데이터는 백그라운드에서 로드 (UI 블로킹 방지)
       if (!resultsError && resultsData && resultsData.length > 0) {
         setShowAnalysis(true);
-        await loadProjectAnalysis();
+        // 분석 로딩을 비동기로 실행하여 페이지 렌더링 차단 방지
+        loadProjectAnalysis();
       }
     } catch (error) {
       console.error("Error fetching project data:", error);
@@ -252,17 +262,23 @@ export default function ProjectDetail() {
   const loadProjectAnalysis = async () => {
     try {
       setIsLoadingAnalysis(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 사용자 정보와 검색 결과를 병렬로 가져오기
+      const [
+        { data: { user } },
+        { data: results, error: resultsError }
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase
+          .from("search_results")
+          .select("id, title, url, snippet, keyword, article_published_at, status")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false })
+      ]);
+
       if (!user) return;
-
-      // Fetch all search results for this project
-      const { data: results, error: resultsError } = await supabase
-        .from("search_results")
-        .select("id, title, url, snippet, keyword, article_published_at, status")
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false });
-
       if (resultsError) throw resultsError;
+
       setSearchResults(results || []);
 
       if (!results || results.length === 0) {
