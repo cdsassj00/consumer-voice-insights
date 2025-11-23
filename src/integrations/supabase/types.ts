@@ -61,6 +61,42 @@ export type Database = {
           },
         ]
       }
+      first_stage_analysis_cache: {
+        Row: {
+          analysis_data: Json
+          cache_key: string
+          created_at: string
+          id: string
+          keyword: string | null
+          result_count: number
+          search_period: string | null
+          trend_data: Json
+          user_id: string
+        }
+        Insert: {
+          analysis_data: Json
+          cache_key: string
+          created_at?: string
+          id?: string
+          keyword?: string | null
+          result_count: number
+          search_period?: string | null
+          trend_data: Json
+          user_id: string
+        }
+        Update: {
+          analysis_data?: Json
+          cache_key?: string
+          created_at?: string
+          id?: string
+          keyword?: string | null
+          result_count?: number
+          search_period?: string | null
+          trend_data?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       keywords: {
         Row: {
           category: string | null
