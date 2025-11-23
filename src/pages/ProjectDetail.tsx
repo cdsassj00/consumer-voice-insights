@@ -58,7 +58,8 @@ export default function ProjectDetail() {
   const [trendData, setTrendData] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
-  const [brandInput, setBrandInput] = useState("");
+  const [companyBrandInput, setCompanyBrandInput] = useState("");
+  const [productServiceInput, setProductServiceInput] = useState("");
   const [selectedKeywordTypes, setSelectedKeywordTypes] = useState<string[]>([]);
   const [isGuidedSearching, setIsGuidedSearching] = useState(false);
   
@@ -354,10 +355,19 @@ export default function ProjectDetail() {
   };
 
   const handleGuidedSearch = async () => {
-    if (!brandInput.trim()) {
+    if (!companyBrandInput.trim()) {
       toast({
-        title: "브랜드/제품 입력 필요",
-        description: "검색하고 싶은 브랜드나 제품명을 입력해주세요.",
+        title: "회사/브랜드명 입력 필요",
+        description: "회사 또는 브랜드명을 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!productServiceInput.trim()) {
+      toast({
+        title: "제품/서비스명 입력 필요",
+        description: "제품 또는 서비스명을 입력해주세요.",
         variant: "destructive",
       });
       return;
@@ -365,8 +375,8 @@ export default function ProjectDetail() {
 
     if (selectedKeywordTypes.length === 0) {
       toast({
-        title: "키워드 타입 선택 필요",
-        description: "최소 1개 이상의 키워드 타입을 선택해주세요.",
+        title: "정보 타입 선택 필요",
+        description: "최소 1개 이상의 정보 타입을 선택해주세요.",
         variant: "destructive",
       });
       return;
@@ -382,8 +392,11 @@ export default function ProjectDetail() {
         .filter(type => selectedKeywordTypes.includes(type.id))
         .map(type => type.label);
 
-      // AND 조건으로 검색 쿼리 생성
-      const searchQuery = `${brandInput} AND (${selectedLabels.join(" OR ")})`;
+      // (1단계 AND 2단계 AND 3단계_첫번째) OR (1단계 AND 2단계 AND 3단계_두번째) 형식
+      const searchQueries = selectedLabels.map(
+        label => `(${companyBrandInput} AND ${productServiceInput} AND ${label})`
+      );
+      const searchQuery = searchQueries.join(" OR ");
       
       toast({
         title: "검색 시작",
@@ -431,7 +444,8 @@ export default function ProjectDetail() {
         description: `총 ${totalResults}개의 결과가 수집되었습니다.`,
       });
 
-      setBrandInput("");
+      setCompanyBrandInput("");
+      setProductServiceInput("");
       setSelectedKeywordTypes([]);
       fetchProjectData();
       setShowAnalysis(true);
@@ -500,7 +514,7 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Guided Search - 2 Step Process */}
+      {/* Guided Search - 3 Step Process */}
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -508,27 +522,40 @@ export default function ProjectDetail() {
             가이드 검색
           </CardTitle>
           <CardDescription>
-            브랜드/제품을 입력하고 원하는 정보 타입을 선택하세요
+            3단계 가이드를 통해 체계적인 검색을 수행하세요
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Step 1: Brand/Product Input */}
+          {/* Step 1: Company/Brand Input */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              1단계: 브랜드/제품명 입력
+              1단계: 회사 또는 브랜드명
             </label>
             <Input
-              placeholder="예: 올리브영 브링그린"
-              value={brandInput}
-              onChange={(e) => setBrandInput(e.target.value)}
+              placeholder="예: 올리브영"
+              value={companyBrandInput}
+              onChange={(e) => setCompanyBrandInput(e.target.value)}
               disabled={isGuidedSearching}
             />
           </div>
 
-          {/* Step 2: Keyword Type Selection */}
+          {/* Step 2: Product/Service Input */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              2단계: 정보 타입 선택 (복수 선택 가능)
+              2단계: 제품 또는 서비스명
+            </label>
+            <Input
+              placeholder="예: 브링그린"
+              value={productServiceInput}
+              onChange={(e) => setProductServiceInput(e.target.value)}
+              disabled={isGuidedSearching}
+            />
+          </div>
+
+          {/* Step 3: Keyword Type Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              3단계: 정보 타입 선택 (복수 선택 가능)
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {keywordTypes.map((type) => (
@@ -550,7 +577,7 @@ export default function ProjectDetail() {
           <div className="flex gap-2 pt-2">
             <Button 
               onClick={handleGuidedSearch} 
-              disabled={isGuidedSearching || !brandInput.trim() || selectedKeywordTypes.length === 0}
+              disabled={isGuidedSearching || !companyBrandInput.trim() || !productServiceInput.trim() || selectedKeywordTypes.length === 0}
               className="flex-1"
             >
               {isGuidedSearching ? (
@@ -565,11 +592,12 @@ export default function ProjectDetail() {
                 </>
               )}
             </Button>
-            {(brandInput || selectedKeywordTypes.length > 0) && !isGuidedSearching && (
+            {(companyBrandInput || productServiceInput || selectedKeywordTypes.length > 0) && !isGuidedSearching && (
               <Button
                 variant="outline"
                 onClick={() => {
-                  setBrandInput("");
+                  setCompanyBrandInput("");
+                  setProductServiceInput("");
                   setSelectedKeywordTypes([]);
                 }}
               >
@@ -578,9 +606,12 @@ export default function ProjectDetail() {
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            * 브랜드/제품명과 선택한 정보 타입이 AND 조건으로 결합되어 검색됩니다
-          </p>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>* 검색 쿼리 구조: (회사 AND 제품 AND 정보타입1) OR (회사 AND 제품 AND 정보타입2) ...</p>
+            <p className="text-primary">
+              예시: 올리브영 + 브링그린 + [후기, 평가] → (올리브영 AND 브링그린 AND 후기) OR (올리브영 AND 브링그린 AND 평가)
+            </p>
+          </div>
         </CardContent>
       </Card>
 
