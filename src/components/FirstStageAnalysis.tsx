@@ -116,7 +116,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
       {/* 정량적 지표 카드 */}
       {analysis.quantitativeMetrics && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleChartClick(() => true, '전체 게시글')}>
             <CardContent className="pt-6">
               <div className="text-center">
                 <Activity className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -125,7 +125,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleChartClick(() => true, '평균 감성 점수 관련 게시글')}>
             <CardContent className="pt-6">
               <div className="text-center">
                 <Star className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -134,7 +134,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleChartClick(() => true, '높은 참여율 게시글')}>
             <CardContent className="pt-6">
               <div className="text-center">
                 <MessageSquare className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -143,7 +143,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleChartClick(() => true, `${analysis.quantitativeMetrics.trendDirection} 트렌드 관련 게시글`)}>
             <CardContent className="pt-6">
               <div className="text-center">
                 {analysis.quantitativeMetrics.trendDirection === '상승' ? (
@@ -156,7 +156,7 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleChartClick(() => true, `성장률 ${analysis.quantitativeMetrics.growthRate}% 관련 게시글`)}>
             <CardContent className="pt-6">
               <div className="text-center">
                 <TrendingUp className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -285,7 +285,21 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(analysis.categoryAnalysis).map(([key, data]) => data && (
-                  <div key={key} className="p-4 border rounded-lg space-y-2" style={{ borderColor: getSentimentColor(data.sentiment) }}>
+                  <div 
+                    key={key} 
+                    className="p-4 border rounded-lg space-y-2 cursor-pointer hover:shadow-lg transition-shadow" 
+                    style={{ borderColor: getSentimentColor(data.sentiment) }}
+                    onClick={() => {
+                      const categoryName = key === 'product' ? '제품' : key === 'service' ? '서비스' : key === 'store' ? '매장' : key === 'price' ? '가격' : '품질';
+                      handleChartClick(
+                        (result) => data.keywords.some(kw => 
+                          result.snippet?.toLowerCase().includes(kw.toLowerCase()) || 
+                          result.title.toLowerCase().includes(kw.toLowerCase())
+                        ),
+                        `${categoryName} 관련 게시글`
+                      );
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold capitalize">
                         {key === 'product' ? '제품' : key === 'service' ? '서비스' : key === 'store' ? '매장' : key === 'price' ? '가격' : '품질'}
@@ -363,6 +377,11 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
                         stroke="hsl(var(--primary))"
                         strokeWidth={2}
                         className="hover:fill-opacity-80 transition-all cursor-pointer"
+                        onClick={() => handleChartClick(
+                          (result) => result.snippet?.toLowerCase().includes(node.name.toLowerCase()) || 
+                                      result.title.toLowerCase().includes(node.name.toLowerCase()),
+                          `${node.name} 키워드 관련 게시글`
+                        )}
                       />
                       <text
                         x={cx}
@@ -410,7 +429,19 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
           <CardContent>
             <div className="space-y-3">
               {analysis.keyOpinions.map((opinion, index) => (
-                <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                <div 
+                  key={index} 
+                  className="p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => {
+                    const keywords = opinion.opinion.split(' ').filter(word => word.length > 1);
+                    handleChartClick(
+                      (result) => keywords.some(kw => 
+                        result.snippet?.includes(kw) || result.title.includes(kw)
+                      ),
+                      `"${opinion.opinion}" 관련 게시글`
+                    );
+                  }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <p className="flex-1 text-foreground">{opinion.opinion}</p>
                     <div className="flex flex-col items-end gap-2">
@@ -481,6 +512,15 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
                   strokeWidth={2}
                   dot={{ fill: 'hsl(var(--primary))' }}
                   name="게시글 수"
+                  className="cursor-pointer"
+                  onClick={(data: any) => {
+                    if (data && data.date) {
+                      handleChartClick(
+                        (result) => result.article_published_at?.startsWith(data.date),
+                        `${data.date} 게시글`
+                      );
+                    }
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -500,7 +540,16 @@ export function FirstStageAnalysis({ analysis, trendData, searchResults }: First
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {analysis.topKeywords.map((keyword, index) => (
-              <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+              <Badge 
+                key={index} 
+                variant="secondary" 
+                className="text-sm px-3 py-1 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => handleChartClick(
+                  (result) => result.snippet?.toLowerCase().includes(keyword.toLowerCase()) || 
+                              result.title.toLowerCase().includes(keyword.toLowerCase()),
+                  `${keyword} 키워드 관련 게시글`
+                )}
+              >
                 {keyword}
               </Badge>
             ))}
